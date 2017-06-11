@@ -1,0 +1,13 @@
+baseurl = "https://ekaschalk.github.io/"
+languageCode = "en-us"
+title = "Eric Kaschalk"
+theme = "pure-hugo"
+Paginate = 10
+
+disqusShortname = "XYW"
+
+PygmentsCodeFences = true
+
+[params]
+  githubName = "ekaschalk"
+  description = "On Emacs, Mathematics, and Software Development"
