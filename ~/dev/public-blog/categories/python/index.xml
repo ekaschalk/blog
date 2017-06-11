@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Python on Eric Kaschalk</title>
+    <link>https://ekaschalk.github.io/categories/python/</link>
+    <description>Recent content in Python on Eric Kaschalk</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 19 Feb 2017 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://ekaschalk.github.io/categories/python/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Mathematical Notation in Emacs</title>
+      <link>https://ekaschalk.github.io/post/prettify-mode/</link>
+      <pubDate>Sun, 19 Feb 2017 00:00:00 +0000</pubDate>
+      
+      <guid>https://ekaschalk.github.io/post/prettify-mode/</guid>
+      <description>Sequences of characters are represented as a single token using:
+ Pretty-mode Pretty-mode provides Greeks, subscripts, and more symbols. Prettify-symbols-mode Prettify Symbols ships with Emacs as of 24.4 and adds support for custom Unicode replacement of symbols. Ligatures Unicode replacements of common operators (see Fira Code, the font I use, and Pragmata Pro fonts)  Any combination of these tools may be chosen; Fira Code is not required to utilize prettify-symbols or pretty-mode.</description>
+    </item>
+    
+  </channel>
+</rss>

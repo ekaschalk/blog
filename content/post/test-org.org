@@ -1,0 +1,30 @@
+* Testing Hugo org-mode integration
+
+This is some text.
+
+A List
+
+1. A
+2. B
+
+and
+
+- A
+  - B
+  - C
+- D
+
+
+A table:
+
+| B | A | C |
+|---+---+---|
+| E | D | F |
+
+** Smaller header
+
+Code source block
+
+#+begin_src python
+print(1+2)
+#+end_src

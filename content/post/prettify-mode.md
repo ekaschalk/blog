@@ -7,7 +7,7 @@ categories: ["emacs", "python", "math"]
 
 <img src="/img/prettify-mode.png" width="660" height="830" />
 
-Sequences of characters are now represented as a single token using:
+Sequences of characters are represented as a single token using:
 
 **Pretty-mode**
 :   [Pretty-mode](https://github.com/akatov/pretty-mode) provides Greeks,
@@ -27,6 +27,8 @@ Sequences of characters are now represented as a single token using:
 Any combination of these tools may be chosen; Fira Code is not required to
 utilize prettify-symbols or pretty-mode. Similarly, the entire Fira Code
 font is not required to use Fira's ligatures.
+
+The replacements are purely visual - searching for "for" will find the for all symbol.
 
 # Pretty mode
 
