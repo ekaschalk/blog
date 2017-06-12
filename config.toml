@@ -1,13 +1,68 @@
+# https://github.com/gcushen/hugo-academic/blob/master/exampleSite/config.toml
+# https://sourcethemes.com/academic/post/getting-started/
+
 baseurl = "https://ekaschalk.github.io/"
 languageCode = "en-us"
-title = "Eric Kaschalk"
-theme = "pure-hugo"
-Paginate = 10
+title = "Eric Kaschalk on Emacs"
+theme = "hugo-academic"
+copyright = "&copy; 2017 Eric Kaschalk"
 
-disqusShortname = "XYW"
+disqusShortname = ""
+googleAnalytics = ""
 
-PygmentsCodeFences = true
+enableEmoji = true
+footnotereturnlinkcontents = "<sup>^</sup>"
+
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
 
 [params]
-  githubName = "ekaschalk"
-  description = "On Emacs"
+  name = "Eric Kaschalk"
+  email = "ekaschalk@gmail.com"
+
+  date_format = "Mon, Jan 2, 2006"
+
+  # https://highlightjs.org/static/demo/
+  highlight = true
+  highlight_languages = ["python", "lisp", "hy", "clojure"]
+  highlight_style = "zenburn"
+
+  sharing = true
+
+  # Link custom CSS and JS assets
+  #   (relative to /static/css and /static/js respectively)
+  # custom_css = []
+  # custom_js  = []
+
+  [[params.social]]
+    icon = "envelope"
+    icon_pack = "fa"
+    link = "mailto:ekaschalk@gmail.com"
+
+  [[params.social]]
+    icon = "github"
+    icon_pack = "fa"
+    link = "//github.com/ekaschalk"
+
+[permalinks]
+  post = "/:year/:month/:day/:slug"
+
+[[menu.main]]
+  name = "Posts"
+  url = "#posts"
+  weight = 3
+
+# [[menu.main]]
+#   name = "Home"
+#   url = "#about"
+#   weight = 1
+
+# [[menu.main]]
+#   name = "Contact"
+#   url = "#contact"
+#   weight = 6
+
+[taxonomies]
+  tag = "tags"
+
+category = "categories"

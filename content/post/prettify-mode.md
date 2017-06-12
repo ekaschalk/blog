@@ -3,6 +3,8 @@ title: "Mathematical Notation in Emacs"
 slug: "prettify-mode"
 date: "2017-02-19"
 categories: ["emacs", "python", "math"]
+summary: "Programming with unicode replacements that only you see."
+
 ---
 
 <img src="/img/prettify-mode.png" width="660" height="830" />
@@ -43,7 +45,7 @@ The `:logic` group overlaps/interferes with prettify-symbols and is disabled.
 The `:sets` group interferes with the `int` symbol replacement for unknown
 reasons. We redefine its symbols in prettify-symbols-mode later.
 
-``` {elisp}
+``` {lisp}
 (require 'pretty-mode)
 (global-pretty-mode t)
 
@@ -73,7 +75,7 @@ goes to ∨, and `lambda` goes to λ.
 
 Additional symbols can be added through `prettify-symbols-alist`.
 
-``` {elisp}
+``` {lisp}
 (global-prettify-symbols-mode 1)
 
 (add-hook

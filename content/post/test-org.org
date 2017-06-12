@@ -1,4 +1,12 @@
-* Testing Hugo org-mode integration
+#+TITLE: Testing Hugo org-mode integration
+#+DATE: 2017-06-11
+#+CATEGORIES: emacs math
+#+SUMMARY: something to say ok
+#+DRAFT: true
+
+* Big Heading
+
+[[https://github.com/chaseadamsio/goorgeous/blob/master/goorgeous_test.go]]
 
 This is some text.
 
@@ -17,14 +25,25 @@ and
 
 A table:
 
-| B | A | C |
-|---+---+---|
-| E | D | F |
+| B    | Aokgsdgksadgshgksajdg | C                 |
+|------+-----------------------+-------------------|
+| Egad | D                     | gfFasassadjhsajdf |
+|      |                       |                   |
 
 ** Smaller header
 
 Code source block
 
-#+begin_src python
+#+BEGIN_SRC python
 print(1+2)
-#+end_src
+def x(y):
+    print("Hello man")
+#+END_SRC
+
+Emacs lisp block
+
+#+BEGIN_SRC lisp
+(+ 1 2)
+#+END_SRC
+
+https://sourcethemes.com/academic/
