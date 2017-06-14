@@ -1,5 +1,7 @@
 # https://github.com/gcushen/hugo-academic/blob/master/exampleSite/config.toml
 # https://sourcethemes.com/academic/post/getting-started/
+# https://sourcethemes.com/academic/post/getting-started/
+# TODO Update hugo script to delete everything before running hugo
 
 baseurl = "https://ekaschalk.github.io/"
 languageCode = "en-us"
