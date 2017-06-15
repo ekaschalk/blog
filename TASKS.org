@@ -1,0 +1,17 @@
+* Theme Ideas
+
+Good example: http://cestlaz.github.io/
+Navbar:
+1. Tags, Github, About
+
+Side: "Check out my Spacemacs" link with pictures from the readme
+Change: my name on emacs to "exploring emacs" or something similar
+
+* Blog Ideas
+
+1. Magit updates
+2. Mathematical Notation pt2
+3. Outline mode
+4. Navi-mode (a separate post)
+5. Pseudo custom infix ops python
+6. Mypy+pylint
