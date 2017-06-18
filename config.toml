@@ -19,7 +19,7 @@ defaultContentLanguageInSubdir = false
 [params]
   name = "Eric Kaschalk"
   email = "ekaschalk@gmail.com"
-  avatar = "portrait.jpg"
+  avatar = "me.jpg"
 
   date_format = "Mon, Jan 2, 2006"
 
@@ -50,9 +50,6 @@ defaultContentLanguageInSubdir = false
     icon = "github"
     icon_pack = "fa"
     link = "//github.com/ekaschalk"
-
-[permalinks]
-  post = "/:year/:month/:day/:slug"
 
 [[menu.main]]
   name = "Posts"
