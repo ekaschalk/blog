@@ -1,16 +1,14 @@
 +++
 # Recent and Upcoming Talks widget.
 
-title = "<img src='img/portrait.jpg' style='width:304px;height:228px;'>"
+title = "My Spacemacs"
+draft = true
 
-subtitle = ""
+subtitle = "<img src='img/portrait.jpg' style='width:304px;height:228px;'>"
 widget = ""
 
 # Order that this section will appear in.
-weight = 30
-
-[header]
-image = "portrait.jpg"
+weight = 50
 
 +++
 

@@ -20,6 +20,8 @@ weight = 100
 
 +++
 
-Software Engineer practicing scientific computing, contributing back to the (Spac)emacs community.
+Software Engineer practicing scientific computing.
+
+<!-- contributing back to the (Spac)emacs community. -->
 
 <!-- <img src="~/dev/blog/static/img/portrait.jpg" alt="Mountain View" style="width:304px;height:228px;"> -->

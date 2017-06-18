@@ -7,8 +7,8 @@ title = "Modern Emacs"
 theme = "hugo-academic"
 copyright = "&copy; 2017 Eric Kaschalk"
 
-disqusShortname = ""
-googleAnalytics = ""
+disqusShortname = "ekaschalk.github.io"
+googleAnalytics = "UA-101190730-1"
 
 enableEmoji = true
 footnotereturnlinkcontents = "<sup>^</sup>"
