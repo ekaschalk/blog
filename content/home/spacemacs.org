@@ -1,21 +1,26 @@
 #+TITLE: My Spacemacs <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank"> <i class="fa fa-github big-icon"></i></a>
-#+SUBTITLE: <pre><code class="language-lisp">(require 'pretty-mode)<br>(global-pretty-mode t)<br>(pretty-deactivate-groups '(:equality :ordering :ordering-double :ordering-triple :arrows :arrows-twoheaded :punctuation :logic :sets)) (pretty-activate-groups '(:sub-and-superscripts :greek :arithmetic-nary)) </code></pre>
-#+DRAFT: true
+#+SUBTITLE: <img src='img/spacemacs/full-example.png' style='width:300px;height:300px'>
+#+DRAFT: false
 #+WEIGHT: 50
 
 # #+TITLE: My Spacemacs
 # #+SUBTITLE: "<img src='img/portrait.jpg' style='width:360px;height:500px;'>"
 
+# #+SUBTITLE: <pre><code class="language-lisp">(require 'pretty-mode)<br>(global-pretty-mode t)<br>(pretty-deactivate-groups '(:equality :ordering :ordering-double :ordering-triple :arrows :arrows-twoheaded :punctuation :logic :sets)) (pretty-activate-groups '(:sub-and-superscripts :greek :arithmetic-nary)) </code></pre>
 # Check out my:
 # <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank">
 # <i class="fa fa-github big-icon"></i></a>
 
-[[file:img/spacemacs/full-example.png]]
+| Ivy                        | Neotree                        |
+|----------------------------+--------------------------------|
+| [[file:img/spacemacs/ivy.png]] | [[file:img/spacemacs/neotree.png]] |
 
+| Shell                         |
+|-------------------------------|
+| [[file:img/spacemacs/eshell.png]] |
 
-| Shell                               | Ivy                              | Neotree                        |
-|-------------------------------------+----------------------------------+--------------------------------|
-| [[file:img/spacemacs/pretty-shell.png]] | [[file:img/spacemacs/icons-ivy.png]] | [[file:img/spacemacs/neotree.png]] |
-
+| Modeline                        |
+|---------------------------------|
+| [[file:img/spacemacs/modeline.png]] |
 
 # <img src='img/spacemacs/neotree.png' style='width:300px;height:300px'>

@@ -1,5 +1,6 @@
 # https://github.com/gcushen/hugo-academic/blob/master/exampleSite/config.toml
 # https://sourcethemes.com/academic/post/getting-started/
+# http://www.curtismlarson.com/blog/2015/04/12/github-pages-google-domains/
 
 baseurl = "https://ekaschalk.github.io/"
 languageCode = "en-us"
