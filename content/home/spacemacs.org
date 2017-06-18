@@ -1,5 +1,5 @@
 #+TITLE: My Spacemacs <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank"> <i class="fa fa-github big-icon"></i></a>
-#+SUBTITLE: <img src='img/spacemacs/full-example.png' style='width:300px;height:300px'>
+#+SUBTITLE: <img src='img/spacemacs/coding.png'>Solarized-dark<br><img src='img/spacemacs/coding-light.png'>Solarized-light
 #+DRAFT: false
 #+WEIGHT: 50
 
@@ -11,7 +11,7 @@
 # <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank">
 # <i class="fa fa-github big-icon"></i></a>
 
-| Ivy                        | Neotree                        | Navi                        |
+| Ivy                        | Neotree                        | Outline-Navi mode         |
 |----------------------------+--------------------------------+-----------------------------|
 | [[file:img/spacemacs/ivy.png]] | [[file:img/spacemacs/neotree.png]] | [[file:img/spacemacs/navi.png]] |
 
