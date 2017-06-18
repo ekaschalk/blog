@@ -2,10 +2,9 @@
 
 Good example: http://cestlaz.github.io/
 Navbar:
-1. Tags, Github, About
+1. Tags
 
 Side: "Check out my Spacemacs" link with pictures from the readme
-Change: my name on emacs to "exploring emacs" or something similar
 
 * Blog Ideas
 
@@ -15,3 +14,6 @@ Change: my name on emacs to "exploring emacs" or something similar
 4. Navi-mode (a separate post)
 5. Pseudo custom infix ops python
 6. Mypy+pylint
+
+* Tasks
+** TODO Update hugo script to delete everything before running hugo
