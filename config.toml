@@ -22,6 +22,8 @@ defaultContentLanguageInSubdir = false
   name = "Eric Kaschalk"
   email = "ekaschalk@gmail.com"
 
+  avatar = "portrait.jpg"
+
   date_format = "Mon, Jan 2, 2006"
 
   # https://highlightjs.org/static/demo/
@@ -33,7 +35,7 @@ defaultContentLanguageInSubdir = false
 
   # Link custom CSS and JS assets
   #   (relative to /static/css and /static/js respectively)
-  # custom_css = []
+  custom_css = ["custom.css"]
   # custom_js  = []
 
   [[params.social]]
@@ -54,17 +56,11 @@ defaultContentLanguageInSubdir = false
   url = "#posts"
   weight = 3
 
-# [[menu.main]]
-#   name = "Home"
-#   url = "#about"
-#   weight = 1
-
-# [[menu.main]]
-#   name = "Contact"
-#   url = "#contact"
-#   weight = 6
+[[menu.main]]
+  name = "About"
+  url = "#about"
+  weight = 5
 
 [taxonomies]
   tag = "tags"
-
-category = "categories"
+  category = "categories"

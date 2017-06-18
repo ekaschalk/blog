@@ -1,0 +1,12 @@
+body {
+    font-size: 14px;
+}
+
+.article-container {
+    max-width: 900px;
+}
+
+.home-section {
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
