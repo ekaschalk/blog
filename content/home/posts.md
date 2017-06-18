@@ -5,8 +5,8 @@
 date = "2016-04-20T00:00:00"
 draft = false
 
-title = "a title"
-subtitle = "a subtitle"
+title = "Recent Posts"
+subtitle = ""
 widget = "posts"
 
 # Order that this section will appear in.

@@ -12,10 +12,12 @@ weight = 100
 # List your academic interests.
 [interests]
   interests = [
-    "Artificial Intelligence",
-    "Computational Linguistics",
-    "Information Retrieval"
+    "Emacs",
+    "Lisps",
+    "Scientific Computing",
+    "Mathematics"
   ]
 
-
 +++
+
+Software Engineer practicing scientific computing, contributing back to the (Spac)emacs community.

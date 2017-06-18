@@ -5,7 +5,7 @@
 
 baseurl = "https://ekaschalk.github.io/"
 languageCode = "en-us"
-title = "Eric Kaschalk on Emacs"
+title = "Modern Emacs"
 theme = "hugo-academic"
 copyright = "&copy; 2017 Eric Kaschalk"
 
@@ -21,22 +21,27 @@ defaultContentLanguageInSubdir = false
 [params]
   name = "Eric Kaschalk"
   email = "ekaschalk@gmail.com"
-
   avatar = "portrait.jpg"
 
   date_format = "Mon, Jan 2, 2006"
 
+  ##########
+  # Highlighting
+  ##########
   # https://highlightjs.org/static/demo/
+
   highlight = true
   highlight_languages = ["python", "lisp", "hy", "clojure"]
   highlight_style = "zenburn"
 
-  sharing = true
-
-  # Link custom CSS and JS assets
-  #   (relative to /static/css and /static/js respectively)
   custom_css = ["custom.css"]
   # custom_js  = []
+
+  ##########
+  # Social
+  ##########
+
+  sharing = true
 
   [[params.social]]
     icon = "envelope"
