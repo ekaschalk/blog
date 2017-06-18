@@ -51,6 +51,11 @@ defaultContentLanguageInSubdir = false
     icon_pack = "fa"
     link = "//github.com/ekaschalk"
 
+  [[params.social]]
+    icon = "linkedin"
+    icon_pack = "fa"
+    link = "//linkedin.com/in/eric-kaschalk-782a63b7"
+
 [[menu.main]]
   name = "Posts"
   url = "#posts"
