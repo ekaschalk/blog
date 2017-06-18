@@ -7,7 +7,7 @@ title = "Modern Emacs"
 theme = "hugo-academic"
 copyright = "&copy; 2017 Eric Kaschalk"
 
-disqusShortname = "ekaschalk.github.io"
+disqusShortname = "ekaschalk-github-io"
 googleAnalytics = "UA-101190730-1"
 
 enableEmoji = true
