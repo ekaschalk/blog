@@ -11,16 +11,16 @@
 # <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank">
 # <i class="fa fa-github big-icon"></i></a>
 
-| Ivy                        | Neotree                        |
-|----------------------------+--------------------------------|
-| [[file:img/spacemacs/ivy.png]] | [[file:img/spacemacs/neotree.png]] |
+| Ivy                        | Neotree                        | Navi                        |
+|----------------------------+--------------------------------+-----------------------------|
+| [[file:img/spacemacs/ivy.png]] | [[file:img/spacemacs/neotree.png]] | [[file:img/spacemacs/navi.png]] |
 
-| Shell                         |
+| Eshell & Modeline            |
 |-------------------------------|
 | [[file:img/spacemacs/eshell.png]] |
 
-| Modeline                        |
-|---------------------------------|
-| [[file:img/spacemacs/modeline.png]] |
+| Magit                        |
+|------------------------------|
+| [[file:img/spacemacs/magit.png]] |
 
 # <img src='img/spacemacs/neotree.png' style='width:300px;height:300px'>
