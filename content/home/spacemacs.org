@@ -5,8 +5,8 @@
 
 *** Coding
 
-[[file:img/spacemacs/python-code2.png]]
-[[file:img/spacemacs/hy-code2.png]]
+[[file:img/spacemacs/python-code.png]]
+[[file:img/spacemacs/hy-code.png]]
 
 | Ivy                        | Neotree                        | Outline-Navi mode         |
 |----------------------------+--------------------------------+-----------------------------|
