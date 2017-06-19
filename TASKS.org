@@ -1,11 +1,3 @@
-* Theme Ideas
-
-Good example: http://cestlaz.github.io/
-Navbar:
-1. Tags
-
-Side: "Check out my Spacemacs" link with pictures from the readme
-
 * Blog Ideas
 
 1. Magit updates
@@ -16,4 +8,7 @@ Side: "Check out my Spacemacs" link with pictures from the readme
 6. Mypy+pylint
 
 * Tasks
-** TODO Update hugo script to delete everything before running hugo
+
+Navbar has categories broken down.
+Possibly compare the magit image with the unfontified one.
+Makes it obvious that it is really Fix: Add: etc..

@@ -3,13 +3,10 @@
 #+DRAFT: false
 #+WEIGHT: 50
 
-# #+TITLE: My Spacemacs
-# #+SUBTITLE: "<img src='img/portrait.jpg' style='width:360px;height:500px;'>"
+*** Coding
 
-# #+SUBTITLE: <pre><code class="language-lisp">(require 'pretty-mode)<br>(global-pretty-mode t)<br>(pretty-deactivate-groups '(:equality :ordering :ordering-double :ordering-triple :arrows :arrows-twoheaded :punctuation :logic :sets)) (pretty-activate-groups '(:sub-and-superscripts :greek :arithmetic-nary)) </code></pre>
-# Check out my:
-# <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank">
-# <i class="fa fa-github big-icon"></i></a>
+[[file:img/spacemacs/python-code2.png]]
+[[file:img/spacemacs/hy-code2.png]]
 
 | Ivy                        | Neotree                        | Outline-Navi mode         |
 |----------------------------+--------------------------------+-----------------------------|
@@ -22,5 +19,3 @@
 | Magit                        |
 |------------------------------|
 | [[file:img/spacemacs/magit.png]] |
-
-# <img src='img/spacemacs/neotree.png' style='width:300px;height:300px'>
