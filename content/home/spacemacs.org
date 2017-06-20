@@ -16,6 +16,6 @@
 |-------------------------------|
 | [[file:img/spacemacs/eshell.png]] |
 
-| Magit                        |
-|------------------------------|
-| [[file:img/spacemacs/magit.png]] |
+| Magit Commits                        | The actual commits |
+|--------------------------------------+---|
+| [[file:img/spacemacs/magit-symbols.png]] |  [[file:img/spacemacs/magit-raw.png]] |
