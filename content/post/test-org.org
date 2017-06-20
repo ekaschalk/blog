@@ -1,49 +1,47 @@
-#+TITLE: Testing Hugo org-mode integration
-#+DATE: 2017-06-11
-#+CATEGORIES: emacs math
-#+SUMMARY: something to say ok
-#+DRAFT: true
+#+TITLE: Unicode Python Infix Operators
+#+SLUG: python-infix
+#+DATE: 2017-06-19
+#+CATEGORIES: emacs math python
+#+SUMMARY: Mimicking custom python unicode infix operators in Emacs.
+#+DRAFT: false
 
-* Big Heading
+Custom infix operators can be emulated in Python using *prettify-symbols-mode*.
 
-[[https://github.com/chaseadamsio/goorgeous/blob/master/goorgeous_test.go]]
+<img src="/img/python-infix.png" width=700px>
+# [[file:/img/python-infix.png]]
 
-This is some text.
-
-A List
-
-1. A
-2. B
-
-and
-
-- A
-  - B
-  - C
-- D
-
-
-A table:
-
-| B    | Aokgsdgksadgshgksajdg | C                 |
-|------+-----------------------+-------------------|
-| Egad | D                     | gfFasassadjhsajdf |
-|      |                       |                   |
-
-** Smaller header
-
-Code source block
-
-#+BEGIN_SRC python
-print(1+2)
-def x(y):
-    print("Hello man")
-#+END_SRC
-
-Emacs lisp block
+In your emacs config include:
 
 #+BEGIN_SRC lisp
-(+ 1 2)
+(global-prettify-symbols-mode 1)
+(add-hook 'python-mode-hook
+          (lambda ()
+            (mapc (lambda (pair) (push pair prettify-symbols-alist))
+                  '(("@compose@"  . #X2218)
+                    ("@pipe@"     . #Xe135)))))
 #+END_SRC
 
-https://sourcethemes.com/academic/
+Now ~pip install infix~.
+
+Optionally ~pip install toolz~, a functional programming library, otherwise you
+can define the infix operations yourself.
+
+#+BEGIN_SRC python
+import toolz.curried as tz
+from infix import custom_infix as infix
+
+@infix('__rmatmul__', '__matmul__')
+def compose(a, b):
+    return tz.compose(a, b)
+
+@infix('__rmatmul__', '__matmul__')
+def pipe(a, b):
+    return tz.pipe(a, b)
+
+[1, 2, 3] @pipe@ (tuple @compose@ tz.map(lambda x: x+1))
+#+END_SRC
+
+Other interesting functions - cons as ':' and concatv/itertools.chain as '++'.
+
+I do not recommend using this trick in production but it is certainly cool to see
+emacs enabling these shenanigans.
