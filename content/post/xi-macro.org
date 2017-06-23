@@ -1,0 +1,56 @@
+#+TITLE: Anonymous function macro in elisp
+#+SLUG: xi-macro
+#+DATE: 2017-06-23
+#+CATEGORIES: emacs emacs-lisp
+#+SUMMARY: Porting clojures #( reader macro to elisp.
+#+DRAFT: false
+
+Clojure has anonymous functions with the reader macro ~#(~
+
+#+BEGIN_SRC clojure
+(#(print %2 %1) "there" "hi")
+#+END_SRCa
+
+Emacs Lisp doesn't have reader macros, but we can take direction from Hylang, a
+lisp dialect similar to Clojure inter-oping with Python.
+
+It implements the anonymous functions as the aptly named ~xi~ macro, where the
+lambda has arguments determined by presence of ~x1 ... xi~ .
+
+#+BEGIN_SRC lisp
+((xi print x2 x1) "there" "hi")
+#+END_SRC
+
+We can implement the ~xi~ macro in Emacs Lisp roughly as:
+
+#+BEGIN_SRC lisp
+(require 'dash)
+(require 's)
+
+(defmacro xi (&rest FORMS)
+  `(lambda ,(--filter (s-contains? (symbol-name it)
+                                   (prin1-to-string FORMS))
+                      '(x1 x2 x3 x4 x5))
+     ,FORMS))
+#+END_SRC
+
+This enables:
+
+#+BEGIN_SRC lisp
+(funcall (xi print (concat x2 x1)) "there" "hi")
+;; expands to
+(funcall (lambda (x1 x2) (print (concat x2 x1))) "there" "hi")
+#+END_SRC
+
+This implementation could be improved - the above example works with ~(xi x3 x1)~,
+it doesn't actually validate that the xi are contiguous. It also doesn't cover
+all numbers of arguments, though over 5 arguments would be questionable anyway.
+
+This macro is especially useful for lambdas without arguments, like adding hooks
+and keybindings.
+
+#+BEGIN_SRC lisp
+(add-hook 'eshell-exit-hook (lambda () (setq esh-prompt-num 0)))
+;; Becomes
+(add-hook 'eshell-exit-hook (xi setq esh-prompt-num 0))
+#+END_SRC
