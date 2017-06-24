@@ -45,6 +45,7 @@ This enables:
 This implementation could be improved - the above example works with ~(xi x3 x1)~,
 it doesn't actually validate that the xi are contiguous. It also doesn't cover
 all numbers of arguments, though over 5 arguments would be questionable anyway.
+Lastly it does not distinguish xis as part of say strings.
 
 This macro is especially useful for lambdas without arguments, like adding hooks
 and keybindings.

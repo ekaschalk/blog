@@ -22,6 +22,8 @@ weight = 100
 
 Software Engineer practicing scientific computing.
 
-<!-- contributing back to the (Spac)emacs community. -->
+I started with Spacemacs a year back with no real editor/ide mastery and
+it quickly became a passion.
 
-<!-- <img src="~/dev/blog/static/img/portrait.jpg" alt="Mountain View" style="width:304px;height:228px;"> -->
+This blog serves my goal to contribute back to a community I find exceptionally
+respectful, practical, and helpful.
