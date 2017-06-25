@@ -25,7 +25,7 @@ weight = 100
 
 +++
 
-Software Engineer practicing scientific computing.
+Software Engineer practicing scientific computing, full time lisper.
 
 I started with Spacemacs a year back with no real editor/ide mastery and
 it quickly became a passion.

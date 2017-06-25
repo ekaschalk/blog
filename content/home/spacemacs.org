@@ -4,19 +4,19 @@
 #+WEIGHT: 50
 #+WIDGET: custom
 
-*** Coding
+*** <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a>
 
 [[file:img/spacemacs/python-code.png]]
 [[file:img/spacemacs/hy-code.png]]
 
+| <a href='{{< relref "custom-eshell.org" >}}'>Eshell all your own</a> |
+|---------------------------------------------------------------------|
+| [[file:img/esh-ex.png]]                                                 |
+
+| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> | The actual leaders               |
+|---------------------------------------------------------------------+----------------------------------|
+| [[file:img/spacemacs/magit-symbols.png]]                                | [[file:img/spacemacs/magit-raw.png]] |
+
 | Ivy                        | Neotree                        | Outline-Navi mode         |
 |----------------------------+--------------------------------+-----------------------------|
 | [[file:img/spacemacs/ivy.png]] | [[file:img/spacemacs/neotree.png]] | [[file:img/spacemacs/navi.png]] |
-
-| Eshell & Modeline            |
-|-------------------------------|
-| [[file:img/spacemacs/eshell.png]] |
-
-| Magit Commits                        | The actual commits |
-|--------------------------------------+---|
-| [[file:img/spacemacs/magit-symbols.png]] |  [[file:img/spacemacs/magit-raw.png]] |
