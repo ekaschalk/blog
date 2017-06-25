@@ -14,3 +14,21 @@ body {
 p.read-more {
     display: none;
 }
+
+.article-title a {
+    font-size: 1.4rem;
+    color: #0095eb;
+}
+
+.article-title {
+    margin-top: 0px;
+    margin-bottom: 0px;
+}
+
+.article-list-item .article-metadata {
+    margin-bottom: 0px;
+}
+
+.article-list-item {
+    margin-bottom: 0px;
+}
