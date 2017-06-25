@@ -14,8 +14,9 @@ is magic, even trivial uses of ~font-lock-add-keywords~ will break fontification
 for the entire buffer.
 
 This post addresses adding faces to Magit to achieve in particular icon and
-colored commit leaders. I also integrate Ivy to prompt a leader when committing
-so you need not remember or type out completely every leader you choose.
+colored commit leaders. I also integrate Ivy/Helm to prompt a leader when
+committing so you need not remember or type out completely every leader you
+choose.
 
 * Adding leaders
 
@@ -80,7 +81,7 @@ respectively, and exclude these from the commit prompts.
 I've tried about all the magit hooks and the only way to apply these updates are
 with ~advice-add~.
 
-* Adding Ivy
+* Adding Ivy or Helm
 
 Since this is Emacs, we can do better than typing out the leaders we've chosen
 each time we are committing. Here I present a solution with Ivy but Helm would
@@ -106,13 +107,21 @@ whether to call the prompt.
     (setq use-magit-commit-prompt-p nil)
     (insert (ivy-read "Commit Type " pretty-magit-prompt
                       :require-match t :sort t :preselect "Add: "))
+    ;; Or if you are using Helm...
+    ;; (insert (helm :sources (helm-build-sync-source "Commit Type "
+    ;;                          :candidates pretty-magit-prompt)
+    ;;               :buffer "*magit cmt prompt*"))
+    ;; I haven't tested this but should be simple to get the same behaior
     (add-magit-faces)
-    (evil-insert 1)))
+    (evil-insert 1)  ; If you use evil
+    ))
 
 (remove-hook 'git-commit-setup-hook 'with-editor-usage-message)
 (add-hook 'git-commit-setup-hook 'magit-commit-prompt)
 (advice-add 'magit-commit :after 'use-magit-commit-prompt)
 #+END_SRC
+
+[[file:/img/magit-prompt.png]]
 
 * Further
 
