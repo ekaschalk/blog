@@ -1,0 +1,144 @@
+#+TITLE: Pretty Magit - Integrating commit leaders
+#+SLUG: pretty-magit
+#+DATE: 2017-06-25
+#+CATEGORIES: emacs
+#+SUMMARY: Using icons in your commits without the downsides.
+#+DRAFT: false
+
+A comparison of how I see my commit logs and how they truly are:
+
+| [[file:/img/spacemacs/magit-symbols.png]] | [[file:/img/spacemacs/magit-raw.png]] |
+
+Typically this would be accomplished with Emacs ~font-lock-mode~. However Magit
+is magic, even trivial uses of ~font-lock-add-keywords~ will break fontification
+for the entire buffer.
+
+This post addresses adding faces to Magit to achieve in particular icon and
+colored commit leaders. I also integrate Ivy to prompt a leader when committing
+so you need not remember or type out completely every leader you choose.
+
+* Adding leaders
+
+We cannot use font-locks so we compose the symbols and add the face text
+properties ourselves.
+
+Users will interact with the macro ~pretty-magit~ which takes a word such as
+Fix, Add, and Docs, a unicode point to replace it with, a face attributes plist,
+and optionally whether to exclude it from being added to the commit prompt.
+
+My personal choices for leaders are:
+- Add :: Any feature or update - check mark
+- Fix :: Any bug fix - a bug
+- Clean :: Any kind of refactoring - scissors
+- Docs :: Documentation changes - info symbol
+- Feature :: A milestone commit - flagpost
+
+I also fontify origin and master with the github icon and branch icon
+respectively, and exclude these from the commit prompts.
+
+#+BEGIN_SRC lisp
+(require 'dash)
+
+(defmacro pretty-magit (WORD ICON PROPS &optional NO-PROMPT?)
+  "Replace sanitized WORD with ICON, PROPS and by default add to prompts."
+  `(prog1
+     (add-to-list 'pretty-magit-alist
+                  (list (rx bow (group ,WORD (eval (if ,NO-PROMPT? "" ":"))))
+                        ,ICON ',PROPS))
+     (unless ,NO-PROMPT?
+       (add-to-list 'pretty-magit-prompt (concat ,WORD ": ")))))
+
+(setq pretty-magit-alist nil)
+(setq pretty-magit-prompt nil)
+(pretty-magit "Feature" ? (:foreground "slate gray" :height 1.2))
+(pretty-magit "Add"     ? (:foreground "#375E97" :height 1.2))
+(pretty-magit "Fix"     ? (:foreground "#FB6542" :height 1.2))
+(pretty-magit "Clean"   ? (:foreground "#FFBB00" :height 1.2))
+(pretty-magit "Docs"    ? (:foreground "#3F681C" :height 1.2))
+(pretty-magit "master"  ? (:box t :height 1.2) t)
+(pretty-magit "origin"  ? (:box t :height 1.2) t)
+
+(defun add-magit-faces ()
+  "Add face properties and compose symbols for buffer from pretty-magit."
+  (interactive)
+  (with-silent-modifications
+    (--each pretty-magit-alist
+      (-let (((rgx icon props) it))
+        (save-excursion
+          (goto-char (point-min))
+          (while (search-forward-regexp rgx nil t)
+            (compose-region
+             (match-beginning 1) (match-end 1) icon)
+            (when props
+              (add-face-text-property
+               (match-beginning 1) (match-end 1) props))))))))
+
+(advice-add 'magit-status :after 'add-magit-faces)
+(advice-add 'magit-refresh-buffer :after 'add-magit-faces)
+#+END_SRC
+
+I've tried about all the magit hooks and the only way to apply these updates are
+with ~advice-add~.
+
+* Adding Ivy
+
+Since this is Emacs, we can do better than typing out the leaders we've chosen
+each time we are committing. Here I present a solution with Ivy but Helm would
+be little different.
+
+The ~git-commit-setup-hook~ they provide has a delayed execution.
+Magit's ammend, reword, and other commit bindings internally use that same hook.
+However, it does not make sense to prompt a leader in those cases.
+We can only distinguish a plain new commit by the call of ~magit-commit~.
+
+With these observations, we must advise ~magit-commit~ to let the hook know
+whether to call the prompt.
+
+#+BEGIN_SRC lisp
+(setq use-magit-commit-prompt-p nil)
+(defun use-magit-commit-prompt (&rest args)
+  (setq use-magit-commit-prompt-p t))
+
+(defun magit-commit-prompt ()
+  "Magit prompt and insert commit header with faces."
+  (interactive)
+  (when use-magit-commit-prompt-p
+    (setq use-magit-commit-prompt-p nil)
+    (insert (ivy-read "Commit Type " pretty-magit-prompt
+                      :require-match t :sort t :preselect "Add: "))
+    (add-magit-faces)
+    (evil-insert 1)))
+
+(remove-hook 'git-commit-setup-hook 'with-editor-usage-message)
+(add-hook 'git-commit-setup-hook 'magit-commit-prompt)
+(advice-add 'magit-commit :after 'use-magit-commit-prompt)
+#+END_SRC
+
+* Further
+
+Beware of two very minor issues that I have not been able to resolve:
+
+1. If you escape an ivy leader prompt, then next commit will skip the prompt and
+   will work fine thereon. Avoid by just not escaping the prompt.
+2. In the commit messages, the insertion from the ivy prompt will be the right
+   symbol, but lose its face properties when text is inserted. This is due to
+   deep Magit propertize magic.
+
+
+There are many possible leaders, consider these options[fn:1]:
+
+- Add :: Create a capability e.g. feature, test, dependency.
+- Cut :: Remove a capability e.g. feature, test, dependency.
+- Fix :: Fix an issue e.g. bug, typo, accident, misstatement.
+- Bump :: Increase the version of something e.g. dependency.
+- Make :: Change the build process, or tooling, or infra.
+- Start :: Begin doing something; e.g. create a feature flag.
+- Stop :: End doing something; e.g. remove a feature flag.
+- Refactor :: A code change that MUST be just a refactoring.
+- Reformat :: Refactor of formatting, e.g. omit whitespace.
+- Optimize :: Refactor of performance, e.g. speed up code.
+- Document :: Refactor of documentation, e.g. help files.
+
+* Footnotes
+
+[fn:1] Commit leader examples taken from from https://news.ycombinator.com/item?id=13889155.
