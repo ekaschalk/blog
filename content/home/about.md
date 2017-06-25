@@ -18,6 +18,11 @@ weight = 100
     "Mathematics"
   ]
 
+[[education.courses]]
+  course = "BSc in Mathematics and Computer Science"
+  institution = "University of Florida"
+  year = 2015
+
 +++
 
 Software Engineer practicing scientific computing.

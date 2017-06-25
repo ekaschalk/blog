@@ -2,6 +2,7 @@
 #+SUBTITLE: <img src='img/spacemacs/coding.png'>Solarized-dark<br><img src='img/spacemacs/coding-light.png'>Solarized-light
 #+DRAFT: false
 #+WEIGHT: 50
+#+WIDGET: custom
 
 *** Coding
 

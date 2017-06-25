@@ -23,7 +23,6 @@ defaultContentLanguageInSubdir = false
   ##########
   # Highlighting
   ##########
-  # https://highlightjs.org/static/demo/
 
   highlight = true
   highlight_languages = ["python", "lisp", "hy", "clojure"]
@@ -57,6 +56,11 @@ defaultContentLanguageInSubdir = false
   name = "Posts"
   url = "#posts"
   weight = 3
+
+[[menu.main]]
+  name = "My Spacemacs"
+  url = "#spacemacs"
+  weight = 4
 
 [[menu.main]]
   name = "About"
