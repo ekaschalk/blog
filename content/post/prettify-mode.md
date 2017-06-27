@@ -7,7 +7,8 @@ summary: "Programming with unicode replacements that only you see."
 
 ---
 
-<img src="/img/prettify-mode.png" width="660" height="830" />
+<img src="/img/spacemacs/python-code.png" />
+<img src="/img/spacemacs/hy-code.png" />
 
 Sequences of characters are represented as a single token using:
 
