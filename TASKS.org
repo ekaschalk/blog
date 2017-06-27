@@ -5,15 +5,12 @@
 
 * Blog Ideas
 
-1. Magit updates
-2. Mathematical Notation pt2
-3. Outline mode
-4. Navi-mode (a separate post)
-5. Pseudo custom infix ops python
-6. Mypy+pylint
+1. Mathematical Notation pt2
+2. Outline mode
+3. Navi-mode (a separate post)
+4. Mypy+pylint
+5. "A rebuttal to Emacs misconceptions"
 
 * Tasks
 
 Navbar has categories broken down.
-Possibly compare the magit image with the unfontified one.
-Makes it obvious that it is really Fix: Add: etc..
