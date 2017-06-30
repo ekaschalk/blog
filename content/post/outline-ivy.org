@@ -1,0 +1,263 @@
+#+TITLE: Managing code with Outlines
+#+SLUG: outline-ivy
+#+DATE: 2017-06-30
+#+CATEGORIES: emacs
+#+SUMMARY: Programming the org-mode way.
+#+DRAFT: false
+
+I consider outlines an under-utilized yet killer feature of Emacs.
+
+This post is split into two parts:
+
+1. Introducing and customizing ~outline-mode~ and ~outshine-mode~.
+2. [[[https://github.com/ekaschalk/dotspacemacs/blob/master/elisp/outline-ivy.el][My package]] ~outline-ivy~ for jumping to outlines.
+
+[[file:/img/outline-ivy.gif]]
+
+* Intro to Outlines
+** Background
+
+Outline-mode is a general framework for headers. Org-mode itself uses
+outline-mode.
+
+Headers are demarcated by the current major-mode's comment syntax, typically
+with levels determined by the proceeding number of ~*~.
+
+- Python: ~# *~ is a level 1 header, ~# **~ a level 2 header...
+- Haskell: ~--*~ ~--**~
+- Clojure: ~;; *~ ~;; **~
+
+Emacs lisp uses ~;;;~, ~;;;;~, ... for compatibility with the many packages that
+use the original, not asterisk-based, outline format.
+
+The package ~outshine~ gives utility like narrowing and cycling to these
+outlines.
+
+** Setup
+
+Enable outlines and outshine with:
+
+#+BEGIN_SRC lisp
+;; Require packages for following code
+(require 'dash)
+(require 'outshine)
+
+;; Required for outshine
+(add-hook 'outline-minor-mode-hook 'outshine-hook-function)
+
+;; Enables outline-minor-mode for *ALL* programming buffers
+(add-hook 'prog-mode-hook 'outline-minor-mode)
+#+END_SRC
+
+** Keybindings
+
+I remap ~outline-minor-mode-map~ to mirror org-mode. Provided are evil and
+leader-key based bindings. Reference org-mode for developing your own
+emacs-style bindings.
+
+#+BEGIN_SRC lisp
+;; Narrowing now works within the headline rather than requiring to be on it
+(advice-add 'outshine-narrow-to-subtree :before
+            (lambda (&rest args) (unless (outline-on-heading-p t)
+                                   (outline-previous-visible-heading 1))))
+
+(spacemacs/set-leader-keys
+  ;; Narrowing
+  "nn" 'outshine-narrow-to-subtree
+  "nw" 'widen
+
+  ;; Structural edits
+  "nj" 'outline-move-subtree-down
+  "nk" 'outline-move-subtree-up
+  "nh" 'outline-promote
+  "nl" 'outline-demote)
+
+(let ((kmap outline-minor-mode-map))
+  (define-key kmap (kbd "M-RET") 'outshine-insert-heading)
+  (define-key kmap (kbd "<backtab>") 'outshine-cycle-buffer)
+
+  ;; Evil outline navigation keybindings
+  (evil-define-key '(normal visual motion) kmap
+    "gh" 'outline-up-heading
+    "gj" 'outline-forward-same-level
+    "gk" 'outline-backward-same-level
+    "gl" 'outline-next-visible-heading
+    "gu" 'outline-previous-visible-heading))
+#+END_SRC
+
+** Styling
+*** Faces
+
+Outline headers fulfill a different goal than org headers. Outlines are for
+structuring semantically similar blocks of code. Org headers additionally
+incorporate todos, priorities, tags, and so on.
+
+Outlines are necessarily further apart than org headers, which often have no
+subtext at all.
+
+So I recommend setting both the ~:background~ and ~:height~ face attributes to
+highlight and make obvious the different sections.
+
+This can be done by updating the ~outline-1/2/3...~ faces.
+Org mode header faces can set separately using the ~org-level-1/2/3...~ faces.
+
+#+BEGIN_SRC lisp
+(setq my-black "#1b1b1e")
+
+(custom-theme-set-faces
+ 'solarized-dark
+ `(outline-1 ((t (:height 1.25 :background "#268bd2"
+                          :foreground ,my-black :weight bold))))
+ `(outline-2 ((t (:height 1.15 :background "#2aa198"
+                          :foreground ,my-black :weight bold))))
+ `(outline-3 ((t (:height 1.05 :background "#b58900"
+                          :foreground ,my-black :weight bold)))))
+#+END_SRC
+
+*** Bullets
+
+Now these outlines will be displayed with the comment syntax, there is no mirror
+of ~org-bullets-bullet-list~ for setting icons to replace the eg. ';;;'.
+
+We need to use ~compose-region~ to manually replace the headers with our custom
+bullets. Here is an image of my org-bullets replicated for outlines.
+[[file:/img/outline-bullets.png]]
+
+The following code is generalized to replace symbols for possibly many modes and
+is a bit complex. Here I implement the outline bullets for lisp-like modes and
+python.
+
+#+BEGIN_SRC lisp
+(defun -add-font-lock-kwds (FONT-LOCK-ALIST)
+  (font-lock-add-keywords
+   nil (--map (-let (((rgx uni-point) it))
+                `(,rgx (0 (progn
+                            (compose-region (match-beginning 1) (match-end 1)
+                                            ,(concat "\t" (list uni-point)))
+                            nil))))
+              FONT-LOCK-ALIST)))
+
+(defmacro add-font-locks (FONT-LOCK-HOOKS-ALIST)
+  `(--each ,FONT-LOCK-HOOKS-ALIST
+     (-let (((font-locks . mode-hooks) it))
+       (--each mode-hooks
+         (add-hook it (-partial '-add-font-lock-kwds
+                                (symbol-value font-locks)))))))
+
+(defconst emacs-outlines-font-lock-alist
+  ;; Outlines
+  '(("\\(^;;;\\) "          ?■)
+    ("\\(^;;;;\\) "         ?○)
+    ("\\(^;;;;;\\) "        ?✸)
+    ("\\(^;;;;;;\\) "       ?✿)))
+
+(defconst lisp-outlines-font-lock-alist
+  ;; Outlines
+  '(("\\(^;; \\*\\) "          ?■)
+    ("\\(^;; \\*\\*\\) "       ?○)
+    ("\\(^;; \\*\\*\\*\\) "    ?✸)
+    ("\\(^;; \\*\\*\\*\\*\\) " ?✿)))
+
+(defconst python-outlines-font-lock-alist
+  '(("\\(^# \\*\\) "          ?■)
+    ("\\(^# \\*\\*\\) "       ?○)
+    ("\\(^# \\*\\*\\*\\) "    ?✸)
+    ("\\(^# \\*\\*\\*\\*\\) " ?✿)))
+
+(add-font-locks
+ '((emacs-outlines-font-lock-alist emacs-lisp-mode-hook)
+   (lisp-outlines-font-lock-alist clojure-mode-hook hy-mode-hook)
+   (python-outlines-font-lock-alist python-mode-hook)))
+#+END_SRC
+
+This could eventually be improved to work for any number of levels and
+auto-determine the outline regex base on the comment syntax.
+
+*** Ellipsis
+
+Org-mode has the variable ~org-ellipsis~ for setting the trailing chars for
+collapsed headers.
+
+We can set our own outline ellipsis icon as follows:
+
+#+BEGIN_SRC lisp
+(defvar outline-display-table (make-display-table))
+(set-display-table-slot outline-display-table 'selective-display
+                        (vector (make-glyph-code ?▼ 'escape-glyph)))
+(defun set-outline-display-table ()
+  (setf buffer-display-table outline-display-table))
+
+(add-hook 'outline-mode-hook 'set-outline-display-table)
+(add-hook 'outline-minor-mode-hook 'set-outline-display-table)
+#+END_SRC
+
+* Outline-ivy
+
+| All the outlines              | Searching catches children     | Restricting Levels              |
+|-------------------------------+--------------------------------+---------------------------------|
+| [[file:/img/outline-ivy-raw.png]] | [[file:/img/outline-ivy-many.png]] | [[file:/img/outline-ivy-level.png]] |
+
+Current methods for jumping to outlines have significant limitations.
+
+[[https://github.com/ekaschalk/dotspacemacs/blob/master/elisp/outline-ivy.el][Outline-ivy]] makes outlines a proper navigational, not just organizational, tool
+with ~oi-jump~.
+
+All outlines are collected, stylized, and associated with their parents.
+
+Parents are inserted as invisible text for child outlines. This way, searching
+for eg. "Display" catches all its children.
+
+The level is also inserted and hidden enabling the search "1 spacemacs" to catch
+only top-level headings matching spacemacs. It also overrides ~ivy-match-face~ and
+ ~ivy-height~ to play nice with the propertized prompt strings.
+
+The default configuration:
+
+#+BEGIN_SRC lisp
+(defvar oi-height 20
+  "Number of outlines to display, overrides ivy-height.")
+
+(defface oi-match-face
+  '((t :height 1.10 :foreground "light gray"))
+  "Match face for ivy outline prompt.")
+
+(defface oi-face-1
+  '((t :foreground "#268bd2" :height 1.25 :underline t :weight ultra-bold))
+  "Ivy outline face for level 1")
+
+(defface oi-face-2
+  '((t :foreground "#2aa198" :height 1.1 :weight semi-bold))
+  "Ivy outline face for level 2")
+
+(defface oi-face-3
+  '((t :foreground "steel blue"))
+  "Ivy outline face for level 3")
+
+;; My keybinding for oi-jump, unbound by default.
+(global-set-key (kbd "C-j") 'oi-jump)
+#+END_SRC
+
+Many emacs lisp packages both intentionally and unintentionally use the outline
+syntax for organizing their source. These changes can make understanding and
+navigating the source significantly easier.
+
+Below is a screenshot jumping to an outline in ~org.el~, the core org source
+file.
+
+[[file:/img/outlines-org.png]]
+
+I'm not sure how difficult it would be to port this package to ~helm~. This is
+one of many updates I'll look to add eventually, such as adding more quick
+actions to the prompt like jump-and-narrow or a projective jump version.
+
+* My Experience
+
+Perhaps the best judge of the impact of some configuration is how often you
+find yourself reaching for it. For buffer-wide navigation to a specific area
+rather than some specific symbol or function, I now almost exclusively use
+ ~oi-jump~.
+
+I consider outlines to be one of the most practical features of Emacs. All
+source code, in any language, I organize with outlines. Given how unobtrusive
+the syntax is, it shouldn't be difficult to implement in a collaborative
+project.
