@@ -7,15 +7,16 @@
 *** <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a>
 
 [[file:img/spacemacs/python-code.png]]
+
 [[file:img/spacemacs/hy-code.png]]
 
-| <a href='{{< relref "custom-eshell.org" >}}'>Eshell all your own</a> |
+| <a href='{{< relref "custom-eshell.org" >}}'>Eshell Improvements</a> |
 |---------------------------------------------------------------------|
 | [[file:img/esh-ex.png]]                                                 |
 
-| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> | The actual leaders               |
-|---------------------------------------------------------------------+----------------------------------|
-| [[file:img/spacemacs/magit-symbols.png]]                                | [[file:img/spacemacs/magit-raw.png]] |
+| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> | Commit leader integration |
+|---------------------------------------------------------------------+---------------------------|
+| [[file:img/spacemacs/magit-symbols.png]]                                | [[file:img/magit-prompt.png]] |
 
 | Ivy                        | Neotree                        | Outline-Navi mode         |
 |----------------------------+--------------------------------+-----------------------------|
