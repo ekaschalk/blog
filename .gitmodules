@@ -1,5 +1,0 @@
-[submodule "themes/hugo-academic"]
-	path = themes/hugo-academic
-	url = https://github.com/gcushen/hugo-academic.git
-
-    # <i class="fa fa-clock-o"></i>
