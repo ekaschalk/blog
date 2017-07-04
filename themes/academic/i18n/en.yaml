@@ -45,7 +45,10 @@
   translation: CONTINUE READING
 
 - id: more_posts
-  translation: More Posts
+  translation: All Posts
+
+- id: emacs_posts
+  translation: Emacs Posts
 
 # Talks widget
 
