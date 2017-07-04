@@ -4,9 +4,6 @@
 #+WEIGHT: 50
 #+WIDGET: custom
 
-
-    # <i class="fa fa-clock-o"></i>
-
 *** <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a>
 
 [[file:img/spacemacs/python-code.png]]
