@@ -11,14 +11,24 @@
     {{ if gt $posts_len $page.Params.count }}
     <p class="view-all">
       <a href="{{ "/post/" | relLangURL }}">
-        All Posts
+        <b>All Posts</b>
         <i class="fa fa-angle-double-right"></i>
       </a>
       <br>
       <a href="{{ "/categories/emacs/" | relLangURL }}">
-        Emacs Posts
+        <b>Emacs Posts</b>
         <i class="fa fa-angle-double-right"></i>
       </a>
+
+      <h4 class="mobile-hide">
+        Posts
+      </h4>
+      {{ range (where $.Data.Pages "Type" "post") }}
+      {{ $params := dict "post" . "page" $page }}
+      <li class="mobile-hide">
+        {{ partial "my_post_li" $params }}
+      </li>
+      {{ end }}
     </p>
     {{ end }}
 

@@ -1,0 +1,9 @@
+{{ $post := .post }}
+{{ $page := .page }}
+
+<div class="mobile-hide">
+  <div class="article-list-item" itemscope itemprop="blogPost">
+    <a href="{{ $post.Permalink }}" itemprop="url">
+      {{ $post.Title }}</a>
+  </div>
+</div>

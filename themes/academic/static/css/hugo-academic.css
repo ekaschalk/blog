@@ -175,6 +175,12 @@ blockquote p:last-child {
   }
 }
 
+@media screen and (max-width: 768px) {
+  .mobile-hide {
+    display: none;
+  }
+}
+
 .space-below {
   margin-bottom: 50px;
 }
