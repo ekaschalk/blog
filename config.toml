@@ -1,4 +1,5 @@
 baseurl = "https://ekaschalk.github.io/"
+# baseurl = "modernemacs.com"
 languageCode = "en-us"
 title = "Modern Emacs"
 theme = "academic"
