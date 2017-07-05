@@ -1,4 +1,4 @@
-#+TITLE: <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank"><i class="fa fa-github big-icon"></i> (Spac)Emacs</a>
+#+TITLE: <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank"><i class="fa fa-github big-icon"></i> Emacs Config</a>
 #+DRAFT: false
 #+WEIGHT: 50
 #+WIDGET: custom
@@ -12,9 +12,9 @@
 |---------------------------------------------------------------------|
 | [[file:img/esh-ex.png]]                                                 |
 
-| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> | & Commit leader integration                               |
-|---------------------------------------------------------------------+-----------------------------------------------------------|
-| [[file:img/spacemacs/magit-symbols.png]]                                | <img src='img/magit-prompt.png' width='550' height='550'> |
+| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> |
+|---------------------------------------------------------------------|
+| [[file:img/spacemacs/magit-symbols.png]]                                |
 
 | <a href='{{< relref "outline-bullets.org" >}}'>Fancy Outlines</a> | <a href='{{< relref "outline-ivy.org" >}}'>Outline-based Navigation</a> |
 |------------------------------------------------------------------+------------------------------------------------------------------------|

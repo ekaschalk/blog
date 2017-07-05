@@ -27,8 +27,9 @@ weight = 100
 
 Software Engineer practicing scientific computing, full time lisper.
 
-I started with Spacemacs a year back with no real editor/ide mastery and
-it quickly became a passion.
+*Modern Emacs* aims to achieve:
 
-This blog serves my goal to contribute back to a community I find exceptionally
-respectful, practical, and helpful.
+1. A practical, clean, and modern aesthetic.
+2. Optimal outline-based code navigation.
+3. An idiomatic, documented, and modular config.
+4. To inspire creativity and personalization in your own Emacs.
