@@ -1,0 +1,114 @@
+#+TITLE: Migrating to Spacemacs Layers
+#+SLUG: migrate-layers
+#+DATE: 2017-07-13
+#+CATEGORIES: emacs
+#+SUMMARY: Experiences modularizing my .spacemacs
+#+DRAFT: false
+
+Spacemacs is typically referred to for its evil integration, space-based
+keybindings, and its community contributed /layers/. Layers collect, configure,
+and integrate groups of packages.
+
+Here I discuss benefits, approaches, and gotchas associated with using Spacemacs
+layers system to organize your configuration.
+
+[[https://github.com/ekaschalk/.spacemacs.d]] hosts my public-facing config.
+
+# I reduced my ~dotspacemacs/user-config~ from ~1,444 to 6~ lines, moving my entire
+# configuration into my own personal layers.
+
+* Why Layers
+
+* Organization
+
+* Layers Walkthrough
+
+The [[https://github.com/syl20bnr/spacemacs/blob/master/doc/LAYERS.org][Spacemacs Layers Documentation]] is fantastic and should be referenced. I
+walkthrough its components from setting up a personal configuration perspective.
+
+** layers.el
+
+~layers.el~ declares layer dependencies. Here, we use the ~theming~ layer to
+apply face updates to several themes, in my case solarized.
+
+It also loads ~macros~, a personal layer that I use as a base to provide common
+functionality to all other personal layers. Specifically, it loads the
+ ~dash-functional~ package and provides the ~with-dir~ macro for use in my
+personal package ~pretty-eshell~.
+
+#+BEGIN_SRC lisp
+(configuration-layer/declare-layers '(theming macros))
+#+END_SRC
+
+** packages.el
+
+Packages can be /owned/ through a ~layer-name/init-pkg-name~ function that
+always calls at least ~(use-package pkg-name)~.
+
+One and only one layer should own a package. Alternatively, the
+ ~dotspacemacs/additional/packages~ list can contain additional packages to
+install independent of any layer.
+
+Layers with unowned packages instead use ~layer-name/pre-init-pkg-name~ and
+the ~layer-name/post-init-pkg-name~ for adding configuration.
+
+
+#+BEGIN_SRC lisp
+;; Portion of my display layer at: ~./spacemacs.d/layers/display/~
+
+;; Illustrates:
+;; 1. Owned melpa pkg
+;; 2. A pkg owned by another layer (python)
+;; 3. A personal pkg
+
+(setq display-packages   ; name must match the folder=layer
+      '(all-the-icons
+        hy-mode
+        (pretty-magit :location local)))
+
+;; No layer owns `all-the-icons'. If we do not define an init function
+;; for it, it will not be installed.
+
+(defun display/init-all-the-icons ()
+  (use-package all-the-icons
+    :config
+    (progn
+      (add-to-list 'all-the-icons-icon-alist
+       '("\\.hy$" all-the-icons-fileicon "lisp" :face all-the-icons-orange))
+      (add-to-list 'all-the-icons-mode-icon-alist
+       '(hy-mode all-the-icons-fileicon "lisp" :face all-the-icons-orange)))))
+
+;; `hy-mode' is a major mode for a python-based lisp, owned by python layer.
+;; Here I update hy's syntax highlighting only after hy is loaded.
+
+(defun display/post-init-hy-mode ()
+  (defun hy-extra-syntax ()
+    (font-lock-add-keywords nil '(("\\<\\(self\\)" . 'font-lock-constant-face))))
+
+  (add-hook 'hy-mode-hook 'hy-extra-syntax))
+
+;; `pretty-magit' is a personal pkg at ~display/local/pretty-magit/pretty-magit.el~
+
+(defun display/init-pretty-magit ()
+  (use-package pretty-magit
+    :config
+    (progn
+      (pretty-magit "Feature" ? (:foreground "slate gray" :height 1.2))
+      (pretty-magit "Add"     ? (:foreground "#375E97" :height 1.2))
+      (pretty-magit "Fix"     ? (:foreground "#FB6542" :height 1.2))
+      (pretty-magit "Clean"   ? (:foreground "#FFBB00" :height 1.2))
+      (pretty-magit "Docs"    ? (:foreground "#3F681C" :height 1.2))
+      (pretty-magit "master"  ? (:box t :height 1.2) t)
+      (pretty-magit "origin"  ? (:box t :height 1.2) t))))
+#+END_SRC
+
+# (prettify-utils :location (recipe :fetcher github
+# :repo "Ilazki/prettify-utils.el"))
+
+** funcs.el
+
+
+** config.el
+
+
+** keybindings.el
