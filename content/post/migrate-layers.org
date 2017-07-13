@@ -12,53 +12,44 @@ packages.
 For how much they add to Emacs, motivations for personal layers are largely
 undocumented.
 
-I discuss benefits, approaches, and gotchas with layer-based configurations.
+I introduce layers then discuss benefits, approaches, and gotchas with
+layer-based configurations.
 
 I've migrated my entire ~dotspacemacs/user-config~ into personal layers - now 6
 lines vs 1,500.
 
-See [[https://github.com/ekaschalk/.spacemacs.d]], my viewer-friendly configuration .
+See [[https://github.com/ekaschalk/.spacemacs.d]] for my viewer-friendly configuration .
 
-* Layers
-** Motivation
+* Introducing Layers
 
-# If you:
-# have a lot of config, especially personal pkgs
-# value modularity, usability, documentation
-
-# talk about disable/enabling
-
-** How they work
-
-# This section rehashes the recommended reading [[http://spacemacs.org/doc/LAYERS.html]].
+This section is not a replacement for [[http://spacemacs.org/doc/LAYERS.html]].
 
 Layers are directories containing up to 5 files and possibly additional
 packages.
 
-# The following examples should have ~layer-name~ and ~pkg-name~ substituted
-# with their actual names - this is not just convention but strict and a common
-# source of issues.
-
 In load order:
-# ~layers.el~, ~packages.el~, ~funcs.el~, ~config.el~ and ~keybindings.el~:
 
-- layers.el :: Layer dependencies to load first.
+*** Layers.el
+
+Layer dependencies to load first.
 
 #+BEGIN_SRC lisp
 (configuration-layer/declare-layers '(theming))
 #+END_SRC
 
-- packages.el :: Packages added or configured by the layer.
+*** packages.el
+
+Packages added or configured by the layer.
 
 #+BEGIN_SRC lisp
 (setq my-layer-packages
-      '(melpa-pkg
+      '(a-pkg
         (github-pkg :location (recipe :fetcher github
                                       :repo "github-user/repo-name"))
         (my-pkg :location local)))
 #+END_SRC
 
-  - Owned Packages : A layer owns a package if it defines ~layer-name/init-pkg-name~. All packages not defined in ~dotspacemacs/additional/packages~ should have one and only one owner. It calls ~use-package~. Common options are ~:init~ for before load config, ~:config~ for after, ~:if~ for loading if eg. a certain OS or executable is installed, ~:after~ for enforcing load order, and ~:defer t~ for deferred loading.
+- *Owned Packages:* A layer owns a package if it defines ~layer-name/init-pkg-name~. All packages not defined in ~dotspacemacs/additional/packages~ should have one and only one owner. It calls ~use-package~. Common options are ~:init~ for before load config, ~:config~ for after, ~:if~ for loading if eg. a certain OS or executable is installed, ~:after~ for enforcing load order, and ~:defer t~ for deferred loading.
 
 #+BEGIN_SRC lisp
 (defun display/init-pretty-outlines ()
@@ -71,7 +62,7 @@ In load order:
       (add-hook 'emacs-lisp-mode-hook 'pretty-outline-add-bullets))))
 #+END_SRC
 
-  - Unowned Packages : A layer that does not own a package can configure it with ~layer-name/pre-init-pkg-name~ and ~layer-name/post-init-pkg-name~.
+- *Unowned Packages:* A layer that does not own a package can configure it with ~layer-name/pre-init-pkg-name~ and ~layer-name/post-init-pkg-name~.
 
 #+BEGIN_SRC lisp
 (defun config/pre-init-neotree ()
@@ -82,15 +73,11 @@ In load order:
   (setq neo-theme 'icons))
 #+END_SRC
 
-  - Local Packages : Personal packages at ~local/my-pkg/my-pkg.el~.
+- *Local Packages:* Personal packages at ~local/my-pkg/my-pkg.el~.
 
-#+BEGIN_SRC lisp
-(require 'pkg1)    ; If any of its layer's packages are required
-(require 'pkg2)    ; then make sure to use :after in its use-package call
-(provide 'my-pkg)  ; Default pkg load order is lexical, don't rely on it
-#+END_SRC
+*** funcs.el
 
-- funcs.el :: Layer functions.
+Layer functions.
 
 Package agnostic functions belong here.
 
@@ -100,16 +87,16 @@ Package agnostic functions belong here.
   `(propertize ,STR 'face (list ,@PROPS)))
 #+END_SRC
 
-Guarding against particular packages or layers:
+Guarding against particular packages being installed:
 
 #+BEGIN_SRC lisp
 (when (configuration-layer/package-usedp 'some-pkg)
   (defun my-func ()))
-(when (configuration-layer/layer-usedp 'some-layer)
-  (defun my-func ()))
 #+END_SRC
 
-- config.el :: Layer variables.
+*** config.el
+
+Layer variables.
 
 #+BEGIN_SRC lisp
 ;; python/config.el
@@ -132,7 +119,10 @@ This can be used for eg. setting theme updates with the ~theming~ layer.
         (solarized-light ...)))
 #+END_SRC
 
-- keybindings.el :: Package-agnostic key-bindings.
+*** keybindings.el
+
+Package-agnostic key-bindings.
+
 #+BEGIN_SRC lisp
 (global-set-key (kbd "M-d") 'spacemacs/delete-window)
 
@@ -142,14 +132,15 @@ This can be used for eg. setting theme updates with the ~theming~ layer.
 #+END_SRC
 
 * Personal Layers
+** Structure
 
-While any organization can be used, I recommend these 5 layers covering most
-needs.
+While any organization can be used, I recommend at most these 5 layers covering
+common needs.
 
 *** A Macros/Base Layer
 
 A base layer that all personal layers inherit packages, macros, and common
-functions from with ~(configuration-layer/declare-layers '(macros))~.
+functions from with ~(configuration-layer/declare-layers '(base))~.
 
 I load ~dash-functional~ and define ~with-dir~, ~with-face~, and other useful
 utilities here.
@@ -195,25 +186,143 @@ I integrate and configure my local pretty packages here:
 
 *** Langs (optional)
 
-All language configuration and packages.
+I find it useful to separate programming language configuration out from the
+config layer, though it is not necessary.
 
 *** Personal (optional)
 
-Personal packages that aren't display or language related. I maintain my Emacs blogging and outline navigation commands here.
+All personal packages that aren't display related I maintain in a single
+personal layer. This is only relevant if you write your own packages.
 
-* Gotchas
+I setup my blogging and outline-jump packages here.
 
-# mention how config doesnt load evil but does load explicitly set theming layer
+** Your init.el
 
-Migrating was mostly painless. However when things go wrong, you lose access to
-your config.
+Layers must be declared in your ~dotspacemacs-configuration-layers~ to take effect.
+
+I've organized my layers into several sections:
+
+#+BEGIN_SRC lisp
+(defvar dotspacemacs/layers/local
+  '((macros :location local)
+    (config :location local)
+    (display :location local)
+    (langs :location local)
+    (personal :location local))
+  "Local layers housed in '~/.spacemacs.d/layers'.")
+
+(defvar dotspacemacs/layers/core
+  '(better-defaults
+    git
+    org
+    ...)
+  "Layers I consider core to Spacemacs")
+
+(defvar dotspacemacs/layers/langs
+  '(emacs-lisp
+    ...)
+  "Programming and markup language layers")
+
+(defvar dotspacemacs/layers/extra
+  '(gnus
+    graphviz
+    ...)
+  "Miscellaneous layers")
+
+(defun dotspacemacs/layers ()
+  (setq-default dotspacemacs-configuration-layer-path '("~/.spacemacs.d/layers/")
+                dotspacemacs-configuration-layers
+                (append dotspacemacs/layers/core
+                        dotspacemacs/layers/langs
+                        dotspacemacs/layers/extra
+                        dotspacemacs/layers/local)
+                ...))
+#+END_SRC
+
+** Gotchas
+
+Migrating was mostly painless. However when things go wrong you lose access to
+your setup, an annoying development cycle. I encountered several Spacemacs
+idiosyncrasies to be aware of when using layers to replace my user-config.
 
 Non-obvious errors to avoid:
 
-- Spacemacs toggles :: Like ~spacemacs/toggle-highlight-long-lines-globally-on~ do not belong in any layer and should be defined in your user-config. These toggles compose my entire ~dotspacemacs/user-config~. This goes for not just Spacemacs toggles - trying to setup ~fringe-mode~ fails even in a ~config/post-init-fringe~ block.
+*** Naming
 
-- OS Configuration :: I define ~is-linuxp~ and a few other OS-specific utilities that will conditionally choose ~dotspacemacs/init~ variables like font size and fullscreen settings. Layers load /after/, so the os utilities cannot be moved to a layer, in my case ~macros~. Set them at the top of your ~init.el~.
+The naming scheme of ~setq layer-name-packages~ and ~defun layer-name/init-pkg-name~ is strict.
+Beware when refactoring that you adjust the layer name accordingly. Failure to
+do so will result in the package's configuration not being loaded or in the case
+of ownership, not being installed, rather than a direct error.
 
-- Evil Load Time :: I defined ~evil-global-set-keys~ in ~macros~ which my ~config~ layer inherits. The catch - built-in ~evil-global-set-key~ will work in ~config/keybindings.el~ but set keys will raise that evil is not loaded. Beware of relying on dependencies not wrapped in inits.
+*** Spacemacs toggles
 
-- Additional Themes :: x
+Some toggles like ~spacemacs/toggle-highlight-long-lines-globally-on~ do not
+belong in any layer and should be defined in your user-config. Six toggles are
+now all that compose my ~dotspacemacs/user-config~.
+
+This goes for some toggles not explicitly owned by Spacemacs - trying to setup
+ ~fringe-mode~ failed for me even in a ~config/post-init-fringe~ block.
+
+*** OS Configuration
+
+I define ~is-linuxp~ and a few other OS utilities that conditionally setup
+ ~dotspacemacs/init~ variables like font size. Layers load after these variables
+are set, so the utilities cannot be moved to a layer. Set them at the top of
+your ~init.el~.
+
+*** Additional Themes
+
+Spacemacs layers load ordering causes issues for extra themes. Theme packages
+cannot be put in a layer. As a result, to use solarized I set:
+
+#+BEGIN_SRC lisp
+;; ~/.spacemacs.d/init.el
+(defun dotspacemacs/layers ()
+  (setq-default dotspacemacs-additional-packages '(solarized-theme)
+                ...))
+(defun dotspacemacs/init ()
+  (setq-default dotspacemacs-themes '(solarized-dark solarized-light)
+                ...))
+#+END_SRC
+
+*** Spacemacs Core Layers
+
+Without doing a deep dive into Spacemacs core, you can expect the following
+layers to always be loaded *before all personal layers*. This is how
+ ~dash~ is always available and ~evil-define-key~ can be used in keybindings
+files.
+
+Call ~g d~ or ~(spacemacs/jump-to-definition)~ in emacs lisp mode to jump to
+that layer's packages.el to check out its packages and configuration.
+
+#+BEGIN_SRC lisp
+(configuration-layer/declare-layers
+ '(spacemacs-base
+   spacemacs-completion
+   spacemacs-layouts
+   spacemacs-editing
+   spacemacs-editing-visual
+   spacemacs-evil
+   spacemacs-language
+   spacemacs-misc
+   spacemacs-modeline
+   spacemacs-navigation
+   spacemacs-org
+   spacemacs-purpose
+   spacemacs-visual))
+#+END_SRC
+
+These layers follow the same rules and principles as every other layer. If you
+have the curiosity, these layers make Spacemacs what it is.
+
+Functionality provided here can be made use of by any layer, assuming those
+packages and layers are not explicitly excluded.
+
+* Benefits
+
+Those that value organization and robustness will find Spacemacs layers to
+improve on other configuration management methods.
+
+Following Spacemacs conventions leads to predictable, friendly configurations.
+
+Once you've become familiar with its conventions, there is no overhead.
