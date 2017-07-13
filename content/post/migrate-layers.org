@@ -1,30 +1,64 @@
 #+TITLE: Migrating to Spacemacs Layers
 #+SLUG: migrate-layers
 #+DATE: 2017-07-13
-#+CATEGORIES: emacs
-#+SUMMARY: Experiences modularizing my .spacemacs
+#+CATEGORIES: emacs spacemacs
+#+SUMMARY: Manage your Spacemacs with personal layers.
 #+DRAFT: false
 
-Spacemacs is typically referred to for its evil integration, space-based
-keybindings, and its community contributed /layers/. Layers collect, configure,
-and integrate groups of packages.
+Spacemacs is referred for its evil integration, space-based bindings, and
+community contributed /layers/ that collect, configure, and integrate groups of
+packages.
 
-I discuss benefits, approaches, and gotchas associated with using Spacemacs
-layers system to organize your personal configuration.
+For how much they add to Emacs, motivations for personal layers are largely
+undocumented.
 
-I've migrated my /entire/ ~dotspacemacs/user-config~ into personal layers - it
-is now 6 lines as compared to over 1,500.
+I discuss benefits, approaches, and gotchas with layer-based configurations.
 
-My viewer-friendly configuration: [[https://github.com/ekaschalk/.spacemacs.d]].
+I've migrated my entire ~dotspacemacs/user-config~ into personal layers - now 6
+lines vs 1,500.
+
+See my viewer-friendly configuration at [[https://github.com/ekaschalk/.spacemacs.d]].
 
 * Layers
 ** Motivation
 
-** What are Layers
-
 # If you:
 # have a lot of config, especially personal pkgs
 # value modularity, usability, documentation
+
+# talk about disable/enabling
+
+** How they work
+
+This section briefly rehashes the recommended reading [[http://spacemacs.org/doc/LAYERS.html]].
+
+Layers are directories containing up to 5 files and possibly additional packages.
+
+In load order:
+
+- layers.el :: Layer dependencies.
+
+#+BEGIN_SRC lisp
+(configuration-layer/declare-layers '(theming))
+#+END_SRC
+
+- packages.el :: Packages added or configured by the layer. Declare packages with ~(setq layer-name-packages '())~.
+
+  - Owned Packages : A layer owns a package if it defines ~layer-name/init-pkg-name~. All packages not defined in ~dotspacemacs/additional/packages~ should have one and only one owner. It calls ~use-package~. Common options are ~:init~ for before load config, ~:config~ for after, ~:if~ for loading if eg. a certain OS or executable is installed, ~:after~ for enforcing load order, and ~:defer t~ for deferred loading.
+
+  - Unowned Packages : A layer that does not own a package can configure it with ~layer-name/pre-init-pkg-name~ and ~layer-name/post-init-pkg-name~.
+
+#+BEGIN_SRC lisp
+(print hi)
+#+END_SRC
+
+- funcs.el :: Package-agnostic function declarations.
+
+- config.el :: Package-agnostic layer configurations.
+
+- keybindings.el :: Package-agnostic key-bindings.
+
+- local/my-pkg-name/my-pkg-name.el :: A layer-local package that should ~(provide 'my-pkg-name)~.
 
 ** Structure
 
@@ -132,3 +166,18 @@ the ~layer-name/post-init-pkg-name~ for adding configuration.
 
 
 ** keybindings.el
+
+* Gotchas
+
+Migrating was mostly painless. However when things go wrong, you lose access to
+your config.
+
+Non-obvious errors to avoid:
+
+- Spacemacs toggles :: Like ~spacemacs/toggle-highlight-long-lines-globally-on~ do not belong in any layer and should be defined in your user-config. These toggles compose my entire ~dotspacemacs/user-config~. This goes for not just Spacemacs toggles - trying to setup ~fringe-mode~ fails even in a ~config/post-init-fringe~ block.
+
+- OS Configuration :: I define ~is-linuxp~ and a few other OS-specific utilities that will conditionally choose ~dotspacemacs/init~ variables like font size and fullscreen settings. Layers load /after/, so the os utilities cannot be moved to a layer, in my case ~macros~. Set them at the top of your ~init.el~.
+
+- Layer Dependencies :: I defined ~evil-global-set-keys~ in ~macros~ which my ~config~ layer inherits. The catch - built-in ~evil-global-set-key~ will work in ~config/keybindings.el~ but set keys will raise that evil is not loaded. Beware of relying on dependencies not wrapped in inits.
+
+- Additional Themes :: x
