@@ -9,20 +9,40 @@ Spacemacs is typically referred to for its evil integration, space-based
 keybindings, and its community contributed /layers/. Layers collect, configure,
 and integrate groups of packages.
 
-Here I discuss benefits, approaches, and gotchas associated with using Spacemacs
-layers system to organize your configuration.
+I discuss benefits, approaches, and gotchas associated with using Spacemacs
+layers system to organize your personal configuration.
 
-[[https://github.com/ekaschalk/.spacemacs.d]] hosts my public-facing config.
+I've migrated my /entire/ ~dotspacemacs/user-config~ into personal layers - it
+is now 6 lines as compared to over 1,500.
 
-# I reduced my ~dotspacemacs/user-config~ from ~1,444 to 6~ lines, moving my entire
-# configuration into my own personal layers.
+My viewer-friendly configuration: [[https://github.com/ekaschalk/.spacemacs.d]].
 
-* Why Layers
+* Layers
+** Motivation
 
-* Organization
+** What are Layers
 
-* Layers Walkthrough
+# If you:
+# have a lot of config, especially personal pkgs
+# value modularity, usability, documentation
 
+** Structure
+
+I recommend maintaining up to 5 layers depending on the size of your config.
+
+- macros :: A base layer that all personal layers inherit packages, macros, and common functions from. For example, I load ~dash-functional~ and define ~with-dir~, ~with-face~, and ~evil-global-set-keys~.
+
+- config :: Package installation, configuration, and keybindings.
+
+- display :: Theme updates and display packages like ~all-the-icons~.
+
+- langs (optional) :: All language configuration.
+
+- personal (optional) :: Personal packages that aren't display or language related. I maintain my Emacs blogging and outline navigation commands here.
+
+* Walkthrough
+
+http://spacemacs.org/doc/LAYERS.html
 The [[https://github.com/syl20bnr/spacemacs/blob/master/doc/LAYERS.org][Spacemacs Layers Documentation]] is fantastic and should be referenced. I
 walkthrough its components from setting up a personal configuration perspective.
 
