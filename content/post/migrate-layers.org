@@ -142,22 +142,64 @@ This can be used for eg. setting theme updates with the ~theming~ layer.
 #+END_SRC
 
 * Personal Layers
-** Structure
 
+While any organization can be used, I recommend these 5 layers covering most
+needs.
 
+*** A Macros/Base Layer
 
+A base layer that all personal layers inherit packages, macros, and common
+functions from with ~(configuration-layer/declare-layers '(macros))~.
 
-I recommend maintaining up to 5 layers depending on the size of your config.
+I load ~dash-functional~ and define ~with-dir~, ~with-face~, and other useful
+utilities here.
 
-- macros :: A base layer that all personal layers inherit packages, macros, and common functions from. For example, I load ~dash-functional~ and define ~with-dir~, ~with-face~, and ~evil-global-set-keys~.
+*** Config
 
-- config :: Package installation, configuration, and keybindings.
+All packages and their configuration and key-bindings that don't fit into any
+neat grouping.
 
-- display :: Theme updates and display packages like ~all-the-icons~.
+When any package's init gets large, consider a local package. I maintain my
+org-mode setup separately in a local ~org-config~ package.
 
-- langs (optional) :: All language configuration.
+Anything, excluding spacemacs toggles, can be setup here. For instance:
 
-- personal (optional) :: Personal packages that aren't display or language related. I maintain my Emacs blogging and outline navigation commands here.
+#+BEGIN_SRC lisp
+(setq config-packages '(evil ...))
+
+(defun config/post-init-evil ()
+  (setq evil-escape-key-sequence "jk")
+  (setq evil-escape-unordered-key-sequence "true")
+  (advice-add 'evil-ex-search-next :after 'config/scroll-to-center-advice)
+  (advice-add 'evil-ex-search-previous :after 'config/scroll-to-center-advice))
+#+END_SRC
+
+I recommend this layer own *all additional packages* except themes, see gotchas.
+
+*** Display
+
+Theme updates and display packages like ~spaceline-all-the-icons~.
+
+Due to how Spacemacs loads themes, I highly recommend declaring the
+ ~theming~ layer a dependency for theme updates. It is much more efficient should
+you configure multiple themes, like light and dark versions, and as it is a
+layer, it will be loaded prior to ~config.el~ for proper code isolation.
+
+I integrate and configure my local pretty packages here:
+
+- /pretty-code/ : Program with custom ligatures and symbols, see <a href='{{< relref "prettify-mode.md" >}}'>mathematical notation in emacs</a>
+- /pretty-eshell/ : Customize eshell information and faces, see <a href='{{< relref "custom-eshell.org" >}}'>making eshell your own</a>
+- /pretty-fonts/ : All the icons and Fira Code ligature integration.
+- /pretty-magit/ : Commit leaders, see <a href='{{< relref "pretty-magit.org" >}}'>pretty magit - integrating commit leaders</a>
+- /pretty-outlines/ : Fancy outline bullets and ellipsis, see <a href='{{< relref "outline-bullets.org" >}}'>fancy outline bullets</a>
+
+*** Langs (optional)
+
+All language configuration and packages.
+
+*** Personal (optional)
+
+Personal packages that aren't display or language related. I maintain my Emacs blogging and outline navigation commands here.
 
 * Gotchas
 
