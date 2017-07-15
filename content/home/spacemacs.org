@@ -1,23 +1,21 @@
-#+TITLE: My Spacemacs <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank"> <i class="fa fa-github big-icon"></i></a>
-#+SUBTITLE: <img src='img/spacemacs/coding.png'>Solarized-dark<br><img src='img/spacemacs/coding-light.png'>Solarized-light
+#+TITLE: <a itemprop="sameAs" href="//github.com/ekaschalk/dotspacemacs" target="_blank"><i class="fa fa-github big-icon"></i> Emacs Config</a>
 #+DRAFT: false
 #+WEIGHT: 50
 #+WIDGET: custom
 
-*** <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a>
-
-[[file:img/spacemacs/python-code.png]]
-
-[[file:img/spacemacs/hy-code.png]]
+| <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a> |
+|----------------------------------------------------------------------------------|
+| [[file:img/spacemacs/python-code.png]]                                               |
+| [[file:img/spacemacs/hy-code.png]]                                                   |
 
 | <a href='{{< relref "custom-eshell.org" >}}'>Eshell Improvements</a> |
 |---------------------------------------------------------------------|
 | [[file:img/esh-ex.png]]                                                 |
 
-| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> | Commit leader integration |
-|---------------------------------------------------------------------+---------------------------|
-| [[file:img/spacemacs/magit-symbols.png]]                                | [[file:img/magit-prompt.png]] |
+| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> |
+|---------------------------------------------------------------------|
+| [[file:img/spacemacs/magit-symbols.png]]                                |
 
-| Ivy                        | Neotree                        | Outline-Navi mode         |
-|----------------------------+--------------------------------+-----------------------------|
-| [[file:img/spacemacs/ivy.png]] | [[file:img/spacemacs/neotree.png]] | [[file:img/spacemacs/navi.png]] |
+| <a href='{{< relref "outline-bullets.org" >}}'>Fancy Outlines</a> | <a href='{{< relref "outline-ivy.org" >}}'>Outline-based Navigation</a> |
+|------------------------------------------------------------------+------------------------------------------------------------------------|
+| [[file:img/outline-bullets-config.png]]                              | [[file:img/outline-ivy-many.png]]                                          |

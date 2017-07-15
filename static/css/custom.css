@@ -11,10 +11,6 @@ body {
     padding-bottom: 50px;
 }
 
-p.read-more {
-    display: none;
-}
-
 .article-title a {
     font-size: 1.4rem;
     color: #0095eb;

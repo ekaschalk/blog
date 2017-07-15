@@ -1,7 +1,8 @@
 baseurl = "https://ekaschalk.github.io/"
+# baseUrl = "modernemacs.com"
 languageCode = "en-us"
 title = "Modern Emacs"
-theme = "hugo-academic"
+theme = "academic"
 copyright = "&copy; 2017 Eric Kaschalk"
 
 disqusShortname = "ekaschalk-github-io"
@@ -29,7 +30,7 @@ defaultContentLanguageInSubdir = false
   highlight_style = "zenburn"
 
   custom_css = ["custom.css"]
-  # custom_js  = []
+  custom_js  = ["custom.js"]
 
   ##########
   # Social

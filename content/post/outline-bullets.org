@@ -1,0 +1,91 @@
+#+TITLE: Fancy Outline Bullets
+#+SLUG: outline-bullets
+#+DATE: 2017-07-03
+#+CATEGORIES: emacs
+#+SUMMARY: Improving the display of outline mode.
+#+DRAFT: false
+
+We improve upon the outline bullets presented in the previous post <a href='{{<
+relref "outline-ivy.org" >}}'>Managing code with Outlines</a>.
+
+| My Headings                         | Editing my config              |
+|-------------------------------------+--------------------------------------|
+| [[file:/img/outline-bullets-fancy.png]] | [[file:/img/outline-bullets-config.png]] |
+
+This solution:
+
+1. Allows for face application to the bullet. The default faces ~outline-1/2/3...~
+   only apply to the text, not the bullet.
+2. Adds spaces for higher level bullets. So not every outline-level needs to
+   have its text start at the same column.
+3. Works for any number of outline levels.
+4. Generalized - uses outline regexes, all that is required to add the bullets
+   to a mode is adding to its hook.
+
+#+BEGIN_SRC lisp
+(require 'dash)
+(require 'outshine)
+(require 's)
+
+(defmacro with-face (STR &rest PROPS)
+  "Return STR propertized with PROPS."
+  `(propertize ,STR 'face (list ,@PROPS)))
+
+(defun set-icon-fonts (CODE-FONT-ALIST)
+  "Utility to associate many unicode points with specified fonts."
+  (--each CODE-FONT-ALIST
+    (-let (((font . codes) it))
+      (--each codes
+        (set-fontset-font t `(,it . ,it) font)))))
+
+;; Requires all-the-icons fonts installed
+(set-icon-fonts
+ '(("material icons" #xe3d0 #xe3d1 #xe3d2 #xe3d4)))
+
+(setq outline-bullets-bullet-list '("" "" "" ""))
+
+(defun font-lock-display-updates (FONT-LOCK-ALIST)
+  "Put text property for FONT-LOCK-ALIST for var-width replacements."
+  (font-lock-add-keywords
+   nil (--map (-let (((rgx uni-point) it))
+                `(,rgx (0 (progn
+                            (put-text-property
+                             (match-beginning 1) (match-end 1)
+                             'display
+                             ,uni-point)
+                            nil))))
+              FONT-LOCK-ALIST)))
+
+(defun outline-bullets-rgx-at-level (LEVEL)
+  "Calculate regex or outline-bullets at LEVEL."
+  (concat "\\(^"
+          (-> LEVEL
+              outshine-calc-outline-string-at-level
+              s-trim-right)
+          "\\) "))
+
+(defun propertize-bullet (LEVEL BULLET)
+  "Add LEVEL-dependent face to BULLET."
+  (with-face BULLET
+             (pcase LEVEL
+               (0 '(:inherit outline-1 :underline nil))
+               (1 '(:inherit outline-2 :underline nil))
+               (2 '(:inherit outline-3 :underline nil))
+               (3 '(:inherit outline-4 :underline nil))
+               (_ nil))))
+
+(defun add-outline-font-locks ()
+  "Use with `add-hook' to enable outline-bullets-bullet-list for mode."
+  (font-lock-display-updates
+   (--map-indexed
+    (list
+     (outline-bullets-rgx-at-level (+ 1 it-index))
+     (concat
+      (s-repeat it-index " ")
+      (propertize-bullet it-index it)))
+    (-take 8 (-cycle outline-bullets-bullet-list)))))
+
+(add-hook 'emacs-lisp-mode-hook 'add-outline-font-locks)
+(add-hook 'hy-mode-hook 'add-outline-font-locks)
+(add-hook 'python-mode-hook 'add-outline-font-locks)
+#+END_SRC
