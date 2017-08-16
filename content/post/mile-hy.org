@@ -1,0 +1,312 @@
+#+TITLE: A mile Hy - My experience with lispy Python
+#+SLUG: mile-hy
+#+DATE: 2017-08-17
+#+CATEGORIES: lisp python hy
+#+SUMMARY: Maintaining a large hy codebase.
+#+DRAFT: false
+
+Roughly, [[http://docs.hylang.org/en/stable/][Hy]] is to Python as Clojure is to Java. Hy completely inter-ops with Python.
+
+I've hit commit 1,500 in my Hy project at work. I wanted to share my experience
+working with Hy, where I feel it shines and where it falls short.
+
+* Intro to Hy
+** Basic syntax
+Hy is a lisp and so uses hyphens as its delimiter. Hy unmangles all hyphens as
+underscores and mangles all incoming underscores to hyphens.
+
+The following is all valid, hyphens and underscores can be used interchangeably:
+
+#+BEGIN_SRC lisp
+(import a-module)
+(import b_module)
+
+(defn a-func [x y]
+  (+ x y))
+
+(setv a-list [1 2])
+(setv a_dict {"k1" "v1" "k2" "v2"})
+#+END_SRC
+
+To use Hy from python:
+
+#+BEGIN_SRC python
+import hy
+from my_hy_module import a_func
+
+a_func(1, 2)
+#+END_SRC
+
+Classes work as expected:
+
+#+BEGIN_SRC lisp
+(defclass AClass [object]
+  (defn --init-- [self])
+
+  #@(staticmethod
+     (defn -a-func [])))
+#+END_SRC
+
+The ~#@~ is a reader macro for ~with-decorator~, illustrated later.
+
+Most all python features are implemented. For example, in master branch we
+have args/kwargs unpacking as:
+
+#+BEGIN_SRC lisp
+(print #* ["hi" "there"] #** {"sep" "\n"})
+#+END_SRC
+
+Some features that were once in python but were removed are also implemented,
+for instance parameter unpacking:
+
+#+BEGIN_SRC lisp
+(defn add [x [y z]]
+  (+ x y z))
+
+(add 1 [2 3])
+#+END_SRC
+
+** Shadowed built-ins
+Most operators are shadowed. This enables:
+
+
+#+BEGIN_SRC lisp
+(map + [1 2] [2 3])
+#+END_SRC
+
+whereas in python you would have to do a comprehension or:
+
+#+BEGIN_SRC python
+import op
+
+map(op.add, [1, 2], [2, 3])
+#+END_SRC
+
+** Special characters in names
+Python restricts the characters you can use in setting variable and functions.
+Hy does not have most of these restrictions.
+
+#+BEGIN_SRC lisp
+(defn assert~ [x y]
+  (npt.assert-almost-equal x y))
+#+END_SRC
+
+** Testing
+Hy works with pytest. Add ~project_root/conftest.py~ with:
+
+#+BEGIN_SRC python
+import hy
+from _pytest.python import Module
+
+
+def pytest_collect_file(path, parent):
+    if path.ext == ".hy" and "test_" in path.basename:
+        return Module(path, parent)
+#+END_SRC
+
+To collect and run tests written in hy.
+
+** Debugging
+Pdb/ipdb integrate perfectly with Hy, regardless if called from a hy, python, or
+ipython repl. The hy code can be stepped through and depending on if which repl
+you are in, hy/python code be can executed.
+
+* Why Hy
+** Macros
+Espousing macros to those who have not learned them is akin to the "monad
+fallacy". Instead, consider this example of macros reducing pytest boilerplate.
+
+The macro definitions are [[https://gist.github.com/ekaschalk/240b213aabe83f565aa74bc70161bfaf][contained in this gist]].
+
+#+BEGIN_SRC lisp
+(deffixture numbers
+  "Some numbers."
+  [[[1 2] 1 [2 3] [2 3]
+   [[1 2] 2 [3 4] [2 4]]
+
+  (list-it it (np.array x1) x2 (np.array x3) (np.array x4))
+
+(with-fixture numbers
+  test-numpy-+ [x i y -]
+  (assert~ (+ i x) y))
+
+(with-fixture numbers
+  test-numpy-* [x i - y]
+  (assert~ (* i x) y))
+#+END_SRC
+
+#+BEGIN_SRC python
+@pytest.fixture(params=[
+    ([1, 2], 1, [2, 3], [2, 3]),
+    ([1, 2], 2, [3, 4], [2, 4])
+])
+def numbers(request):
+    "Some numbers."
+    x, i, y, z = request.params
+    return np.array(x), i, np.array(y), np.array(z)
+
+def test_numpy_add(numbers):
+    x, i, y, _ = numbers
+    npt.assert_almost_equal(x+i, y)
+
+def test_numpy_mult(numbers):
+    x, i, _, y = numbers
+    npt.assert_almost_equal(x*i, y)
+#+END_SRC
+
+Macros allowed:
+
+1. Implicitly binding request.params to "it" which are then deconstructed to an
+   anonymous function with the number of parameters as its arity.
+2. Selectively transforming these parameters.
+3. Unpacking and binding the parameters at function definition level.
+
+With the prep factored out in a way only macros enable, the testing body is now
+exactly and only the testing logic.
+
+*** Reader Macros
+Reader macros are macros with a shortened syntax.
+The ones I use most are:
+
+#+BEGIN_SRC lisp
+(import [toolz.curried :as tz])
+
+(deftag t [expr]
+  "Cast form to a tuple."
+  `(tuple ~expr))
+
+(deftag $ [expr]
+  "Curry a form."
+  `(tz.curry ~@expr))
+
+;; For example
+#t(map #$(+ 1) [1 2])
+#+END_SRC
+
+Or in python:
+
+#+BEGIN_SRC python
+tuple(map(lambda x: x+1, [1, 2]))
+tuple(x+1 for x in [1, 2])
+#+END_SRC
+
+Depending on the version of hy you are using, it is either =defsharp= or =deftag=.
+
+** Structural editing
+Those that are familiar with lisps likely know the terms "slurp", "barf",
+"wrap", and so on.
+
+Lisp syntax allows for editing the AST directly.
+
+#+BEGIN_SRC lisp
+;; Initial text
+map [1 2] (+ 1)
+;; wrap map with "w" followed by three slurps 3*"s"
+(map [1 2] (+ 1))
+;; traverse to last form 2*"j" and transpose "t"
+(map (+ 1) [1 2])
+;; altogether 'wsssjjt'
+#+END_SRC
+
+This kind of editing is not possible (or at least very restricted) when editing
+python code.
+
+** Functional programming
+What drove me to move to Hy was when I looked at my code and saw
+ =tz.thread_first= and =tz.thread_last= everywhere. Python goes out of its way
+to make functional programming a second-class citizen. Most all building blocks
+of FP must be implemented and imported everywhere, like the identity function
+and composition.
+
+Hy empowers FP with:
+
+1. Threading and anaphoric macros.
+2. First class functools and itertools (reduce, starmap, compress...)
+3. Common functional methods (juxt, take, drop, constantly, repeatedly...)
+
+* When to Hyde
+Hy is not always the best choice. I have encountered some issues with Hy, as
+would be expected with a niche language under active development.
+
+The issues are however minor and due to the key development invariant of
+maintaining complete python compatibility, at worst they can be addressed by
+writing that functionality in Python and importing it.
+
+** Tooling
+The largest challenge I see to Hy adoption is its current state of tooling.
+
+If you want to have an enjoyable Hy experience, you are pretty much limited to
+Emacs.
+
+The Emacs major-mode hy-mode implements syntax highlighting and some basic repl
+support but has its own set of issues.
+
+1. No linter, and pylint won't recognize imported hy objects.
+2. No autocompletion.
+3. There are bugs.
+
+I'm going to work to address some of these issues but as of now, while you have
+access to all of python's libraries, the same is not true for its tooling.
+
+** Scripting
+Hy's repl comes far short of Ipython's featureset. You do not have things like
+autoloading or %pdb toggling. In general, lisp's syntax is not as nice for
+scripting.
+
+I actually write all my scripts and interactive code in Python as a result.
+
+** Performance Critical Code
+If you are writing code that does a lot of fancy array indexing and in-place
+operations, you will have a bad time in Hy.
+
+My work is data-sciency and I have some numba accelerated code in separate
+python modules. I've called Cython source files from Hy without issue.
+
+There is also a small performance cost to using Hy, it is insignificant for
+most purposes.
+
+** Breaking Changes
+Breaking changes do occur.
+
+Version 0.12 had reader macros as =defreader= which is now =defsharp= in 0.13
+and now in master branch is =deftag=. There are good reasons for these changes,
+but they do require being up to date on hy's development.
+
+The function =apply= for calling a function with arguments unpacked was removed
+in master when the unpacking generalizations were implemented. However, apply
+still has a use-case for threading macros and last I checked they were debating
+reintroducing it in some form.
+
+The constants for inf and -inf recently were changed to require capitalization.
+
+Let was originally implemented but removed in favor of =setv=.
+
+There are good reasons for all these changes but they do incur extra maintenance
+on your part.
+
+** Documentation
+Hy's documentation could be improved. Some examples:
+
+1. Integrating pytest and Hy via the =conftest.py= is not documented.
+2. Which operators are shadowed are not documented. While now functions like =get= are shadowed, when I started, using =get= as a function would throw the strange =NameError: name 'get' is not defined=.
+3. Macros are imported with =require=. Unlike imports, requires are not transitive. So if I have a =macros.hy= file that does =(require [hy.extra.anaphoric [*]])=, in every file requiring from macros I will also need to require the anaphorics again.
+4. The documentation for =zero?= implies an =x is 0= but it actually checks
+   equality. This came up working with numpy, small issues like this are present.
+
+Although the community is small, I've found the maintainers to be very helpful
+and quick to respond.
+
+* My Experience
+Python is a practical language - it has amazing libraries, tooling, and
+communities. But it's development is opinionated towards imperative programming
+and its syntax, while great for the majority, leaves others wanting more
+flexibility.
+
+I've really enjoyed my time with Hy and 1,500 commits later, am satisfied with
+my choice. Small changes like parameter unpacking and no more commas trim things
+down. Larger changes like macros, threading and the functional built-ins allow
+for a first-class functional programming experience.
+
+Choosing Hy you don't get Clojurescript or the type safety of Haskell, but you
+do get Numpy, Pandas, Matplotlib, Numba, Django, and every other python library
+from the comfort of Lisp.
