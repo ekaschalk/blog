@@ -22,49 +22,44 @@ This solution:
 4. Generalized - uses outline regexes, all that is required to add the bullets
    to a mode is adding to its hook.
 
+The package can be found at: [[https://github.com/ekaschalk/.spacemacs.d/tree/master/layers/display/local/pretty-outlines]]
+
 #+BEGIN_SRC lisp
 (require 'dash)
 (require 'outshine)
 (require 's)
 
-(defmacro with-face (STR &rest PROPS)
-  "Return STR propertized with PROPS."
-  `(propertize ,STR 'face (list ,@PROPS)))
+(provide 'pretty-outlines)
 
-(defun set-icon-fonts (CODE-FONT-ALIST)
-  "Utility to associate many unicode points with specified fonts."
-  (--each CODE-FONT-ALIST
-    (-let (((font . codes) it))
-      (--each codes
-        (set-fontset-font t `(,it . ,it) font)))))
+;;; Config
 
-;; Requires all-the-icons fonts installed
-(set-icon-fonts
- '(("material icons" #xe3d0 #xe3d1 #xe3d2 #xe3d4)))
+(defvar pretty-outline-bullets-bullet-list '("" "" "" "")
+  "An implemention of `org-bullets-bullet-list' for outlines")
 
-(setq outline-bullets-bullet-list '("" "" "" ""))
+;;; Outline-bullets
 
-(defun font-lock-display-updates (FONT-LOCK-ALIST)
+(defun pretty-outline--add-font-locks (FONT-LOCK-ALIST)
   "Put text property for FONT-LOCK-ALIST for var-width replacements."
   (font-lock-add-keywords
    nil (--map (-let (((rgx uni-point) it))
-                `(,rgx (0 (progn
-                            (put-text-property
-                             (match-beginning 1) (match-end 1)
-                             'display
-                             ,uni-point)
-                            nil))))
-              FONT-LOCK-ALIST)))
+             `(,rgx (0 (progn
+                         (put-text-property
+                          (match-beginning 1) (match-end 1)
+                          'display
+                          ,uni-point)
+                         nil))))
+           FONT-LOCK-ALIST)))
 
-(defun outline-bullets-rgx-at-level (LEVEL)
+(defun pretty-outline--bullets-rgx-at-level (LEVEL)
   "Calculate regex or outline-bullets at LEVEL."
   (concat "\\(^"
-          (-> LEVEL
-              outshine-calc-outline-string-at-level
-              s-trim-right)
+          (->> LEVEL
+             outshine-calc-outline-string-at-level
+             s-trim-right
+             (s-replace "*" "\\*"))
           "\\) "))
 
-(defun propertize-bullet (LEVEL BULLET)
+(defun pretty-outline--propertize-bullet (LEVEL BULLET)
   "Add LEVEL-dependent face to BULLET."
   (with-face BULLET
              (pcase LEVEL
@@ -74,18 +69,18 @@ This solution:
                (3 '(:inherit outline-4 :underline nil))
                (_ nil))))
 
-(defun add-outline-font-locks ()
-  "Use with `add-hook' to enable outline-bullets-bullet-list for mode."
-  (font-lock-display-updates
+(defun pretty-outline-add-bullets ()
+  "Use with `add-hook' to enable pretty-outline-bullets-bullet-list for mode."
+  (pretty-outline--add-font-locks
    (--map-indexed
     (list
-     (outline-bullets-rgx-at-level (+ 1 it-index))
+     (pretty-outline--bullets-rgx-at-level (+ 1 it-index))
      (concat
       (s-repeat it-index " ")
-      (propertize-bullet it-index it)))
-    (-take 8 (-cycle outline-bullets-bullet-list)))))
+      (pretty-outline--propertize-bullet it-index it)))
+    (-take 8 (-cycle pretty-outline-bullets-bullet-list)))))
 
-(add-hook 'emacs-lisp-mode-hook 'add-outline-font-locks)
-(add-hook 'hy-mode-hook 'add-outline-font-locks)
-(add-hook 'python-mode-hook 'add-outline-font-locks)
+(add-hook 'emacs-lisp-mode-hook 'pretty-outline-add-bullets)
+(add-hook 'hy-mode-hook 'pretty-outline-add-bullets)
+(add-hook 'python-mode-hook 'pretty-outline-add-bullets)
 #+END_SRC
