@@ -1,0 +1,24 @@
+#+TITLE: Deep dive into writing a major mode - Part 1
+#+SLUG: major-mode-part-1
+#+DATE: 2017-09-22
+#+CATEGORIES: emacs
+#+SUMMARY: Lessons learned writing hy-mode.
+#+DRAFT: false
+
+I've taken up maintaining ~hy-mode~ - a major mode for lispy python [[https://github.com/hylang/hy-mode][found here.]]
+
+This series will detail my experience adding autocompletion, indentation, shell
+integration, and so on for a lisp.
+
+These will not be tutorials. The intent is to be dense and narrate how I worked
+through specific problems I encountered. My steps and solutions might not be
+best - I welcome feedback.
+
+Although this series focuses on a lisp, the lessons help in any language.
+
+* Implementing Indentation
+
+Look through ~calculate-lisp-indent~, the indentation workhorse, and you will
+quickly see indentation is /hard/.
+
+First we must become familiar with ~parse-partial-sexp~,
