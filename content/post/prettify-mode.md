@@ -122,12 +122,18 @@ characters [here](http://www.fileformat.info/info/unicode/index.htm).
 
 # Ligatures
 
-See [Fira Code](https://github.com/tonsky/FiraCode) font for examples and
-installation. [This
-snippet](https://gist.github.com/mordocai/50783defab3c3d1650e068b4d1c91495)
-must go into your config. Make sure you install the `Fira Code Symbol font`
-linked at the top of the gist *in addition* to the fonts linked on the Github.
-The gist should work for both Linux and Windows.
+UPDATE: The original implementation of ligatures for Emacs is no longer hosted.
+[Check out my package that implements fira code](https://github.com/ekaschalk/.spacemacs.d/blob/master/layers/display/local/pretty-fonts/pretty-fonts.el)
+
+To enable them, you need to add:
+
+```{lisp}
+(pretty-fonts-set-kwds
+  '((pretty-fonts-fira-font prog-mode-hook org-mode-hook)))
+```
+
+The ligatures require the FiraCodeSymbol font, not the entire fira code font.
+Here is a link to the ligatures font to be installed: https://github.com/tonsky/FiraCode/files/412440/FiraCode-Regular-Symbol.zip.
 
 Some of the asterisk ligatures can conflict with org-mode headers and others I
 just did not like. I have disabled ligatures for

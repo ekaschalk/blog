@@ -10,7 +10,7 @@ I consider outlines an under-utilized yet killer feature of Emacs.
 This post is split into two parts:
 
 1. Introducing and customizing ~outline-mode~ and ~outshine-mode~.
-2. [[[https://github.com/ekaschalk/dotspacemacs/blob/master/elisp/outline-ivy.el][My package]] ~outline-ivy~ for jumping to outlines.
+2. [[[https://github.com/ekaschalk/.spacemacs.d/blob/master/layers/personal/local/outline-ivy/outline-ivy.el][My package]] ~outline-ivy~ for jumping to outlines.
 
 [[file:/img/outline-ivy.gif]]
 
@@ -127,6 +127,8 @@ The following code is generalized to replace symbols for possibly many modes and
 is a bit complex. Here I implement the outline bullets for lisp-like modes and
 python.
 
+UPDATE: Check <a href='{{< relref "outline-bullets.org" >}}'>this post for full implementation.</a>
+
 #+BEGIN_SRC lisp
 (defun -add-font-lock-kwds (FONT-LOCK-ALIST)
   (font-lock-add-keywords
@@ -199,7 +201,7 @@ We can set our own outline ellipsis icon as follows:
 
 Current methods for jumping to outlines have significant limitations.
 
-[[https://github.com/ekaschalk/dotspacemacs/blob/master/elisp/outline-ivy.el][Outline-ivy]] makes outlines a proper navigational, not just organizational, tool
+[[https://github.com/ekaschalk/.spacemacs.d/blob/master/layers/personal/local/outline-ivy/outline-ivy.el][Outline-ivy]] makes outlines a proper navigational, not just organizational, tool
 with ~oi-jump~.
 
 All outlines are collected, stylized, and associated with their parents.
