@@ -1,24 +1,26 @@
 #+TITLE: Deep diving into a major mode - Part 1
 #+SLUG: major-mode-part-1
-#+DATE: 2017-09-22
+#+DATE: 2017-10-03
 #+CATEGORIES: emacs
 #+SUMMARY: Lessons learned writing hy-mode.
 #+DRAFT: false
 
-I've taken up maintaining ~hy-mode~ - a major mode for lispy python [[https://github.com/hylang/hy-mode][found here.]]
+I've taken up maintaining [[https://github.com/hylang/hy-mode][hy-mode]] - a major mode for [[https://github.com/hylang/hy][lispy python]].
 
-I narrate my working through specific problems in auto-completion, indentation,
-shell integration, and so on. These posts are my working through these problems,
-if better solutions are available or I'm wrong, please let me know!
+I narrate working through specific problems in auto-completion, indentation,
+shell integration, and so on.
+
+This post touches on: syntax, indentation, font-locking, and context-sensitive
+syntax.
 
 All code snippets require the Emacs packages ~dash~ and ~s~.
 
 * Syntax Tables
 
-The first step in major modes is the syntax table.
+  The first step in a major mode is the syntax table.
 
-In any major mode run ~describe-syntax~ to see it's syntax table. As we are
-working with a lisp, we copy its syntax-table to start with.
+  In any major mode run ~describe-syntax~ to see its syntax table. As we are
+  working with a lisp, we copy its syntax-table to start with.
 
 #+BEGIN_SRC lisp
 (defconst hy-mode-syntax-table
@@ -29,14 +31,16 @@ working with a lisp, we copy its syntax-table to start with.
   "Hy modes syntax table.")
 #+END_SRC
 
-Configuration is performed with ~modify-syntax-entry~, its docstring provides
-all the syntactic constructs we can pick from.
+  The syntax table isn't set explicitly, its name identifies and sets it for hy-mode.
 
-A subset to be familiar with:
+  Configuration is performed with ~modify-syntax-entry~, its docstring provides
+  all the syntactic constructs we can pick from.
 
-- ( ) : ~open/close parenthesis~. These are for all bracket-like constructs such
-  as [ ] or { }. The first character should be the syntactic construct, namely
-  "(" or ")", and the second character should be the closing delimiter.
+  A subset to be familiar with:
+
+  - ( ) : ~open/close parenthesis~. These are for all bracket-like constructs such
+    as [ ] or { }. The first character should be the syntactic construct, namely
+    "(" or ")", and the second character should be the closing delimiter.
 
 #+BEGIN_SRC lisp
 (modify-syntax-entry ?\{ "(}" table)
@@ -45,10 +49,7 @@ A subset to be familiar with:
 (modify-syntax-entry ?\] ")[" table)
 #+END_SRC
 
-- " : ~string quote~. Since we copy lisp-mode's table, the " is already set.
-
-- ' : ~prefix character~.
-TODO
+  - ' : ~prefix character~. Prefixes a symbol/word.
 
 #+BEGIN_SRC lisp
 ;; Quote characters are prefixes
@@ -56,8 +57,7 @@ TODO
 (modify-syntax-entry ?\@ "'" table)
 #+END_SRC
 
-- _ and w : ~symbol and word constituent~ respectively.
-TODO
+  - _ and w : ~symbol and word constituent~ respectively.
 
 #+BEGIN_SRC lisp
 ;; "," is a symbol in Hy, namely the tuple constructor
@@ -70,14 +70,373 @@ TODO
 (modify-syntax-entry ?\# "_ p" table)
 #+END_SRC
 
-- | : ~generic string fence~. A more general string quote syntactic construct.
-  Used for delimiting multi-line strings like with triple quotes in Python. I go
-  into depth on this construct in the "context-sensitive syntax" section.
+  - | : ~generic string fence~. A more general string quote syntactic construct.
+    Used for delimiting multi-line strings like with triple quotes in Python. I go
+    into depth on this construct in the "context-sensitive syntax" section.
 
 * Indentation
 
   Look through ~calculate-lisp-indent~, the indentation workhorse of ~lisp-mode~ derivatives,
   and it is quickly seen that indentation is /hard/.
 
+  Indentation is set with ~indent-line-function~.
+
+  In the case of a lisp, we actually do:
+
+#+BEGIN_SRC lisp
+(setq-local indent-line-function 'lisp-indent-line)
+(setq-local lisp-indent-function 'hy-indent-function)
+#+END_SRC
+
+  Where the real work is performed by ~calculate-lisp-indent~ that makes calls
+  to ~lisp-indent-function~, accepting an ~indent-point~ and ~state~.
+
   The function at heart is ~parse-partial-sexp~, taking limiting points and
   retrieving a 10 element list describing the syntax at the point.
+
+  As this is a (necessarily) excessive amount of information, I recommend as
+  many other modes have done - define some aliases. I have:
+
+#+BEGIN_SRC lisp
+(defun hy--sexp-inermost-char (state) (nth 1 state))
+(defun hy--start-of-last-sexp (state) (nth 2 state))
+(defun hy--in-string? (state) (nth 3 state))
+(defun hy--start-of-string (state) (nth 8 state))
+#+END_SRC
+
+  Observe you can also omit ~state~ and call ~syntax-ppss~ to get state which runs
+  ~parse-partial-sexp~ from point-min to current point, with the caveat that the
+  2nd and 6th state aren't reliable. I prefer to pass the state manually.
+
+  These are the building blocks for indentation - we can then write utilities
+  to better get our head around indentation like:
+
+#+BEGIN_SRC lisp
+(defun hy--prior-sexp? (state)
+  (number-or-marker-p (hy--start-of-last-sexp state)))
+#+END_SRC
+
+** The indent function
+
+  The three cases:
+
+#+BEGIN_SRC lisp
+;; Normal Indent
+(normal b
+        c)
+(normal
+  b c)
+
+;; Special Forms
+(special b
+  c)
+
+;; List-likes
+[a b
+ c]
+#+END_SRC
+
+   Hy's current indent function:
+
+#+BEGIN_SRC lisp
+(defun hy-indent-function (indent-point state)
+  "Indent at INDENT-POINT where STATE is `parse-partial-sexp' for INDENT-POINT."
+  (goto-char (hy--sexp-inermost-char state))
+
+  (if (hy--not-function-form-p)
+      (1+ (current-column))  ; Indent after [, {, ... is always 1
+    (forward-char 1)  ; Move to start of sexp
+
+    (cond ((hy--check-non-symbol-sexp (point))  ; Comma tuple constructor
+           (+ 2 (current-column)))
+
+          ((hy--find-indent-spec state)  ; Special form uses fixed indendation
+           (1+ (current-column)))
+
+          (t
+           (hy--normal-indent calculate-lisp-indent-last-sexp)))))
+#+END_SRC
+
+    When we indent we jump to the sexp's innermost char, ie. "(", "[", "{", etc..
+
+    If that character is a list-like, then we 1+ it and are done.
+
+    Otherwise we move to the start of the sexp and investigate if
+    ~(thing-at-point 'symbol)~. If it is, then we check a list of special forms
+    like ~when~, ~do~, ~defn~ for a match. If we found a (possibly fuzzy) match,
+    then regardless of whether the first line contains args or not, we indent
+    the same.
+
+#+BEGIN_SRC lisp
+(defun hy--normal-indent (last-sexp)
+  "Determine normal indentation column of LAST-SEXP.
+
+Example:
+ (a (b c d
+       e
+       f))
+
+1. Indent e => start at d -> c -> b.
+Then backwards-sexp will throw error trying to jump to a.
+Observe 'a' need not be on the same line as the ( will cause a match.
+Then we determine indentation based on whether there is an arg or not.
+
+2. Indenting f will go to e.
+Now since there is a prior sexp d but we have no sexps-before on same line,
+the loop will terminate without error and the prior lines indentation is it."
+  (goto-char last-sexp)
+  (-let [last-sexp-start nil]
+    (if (ignore-errors
+          (while (hy--anything-before? (point))
+            (setq last-sexp-start (prog1
+                                      ;; Indentation should ignore quote chars
+                                      (if (-contains? '(?\' ?\` ?\~)
+                                                      (char-before))
+                                          (1- (point))
+                                        (point))
+                                    (backward-sexp))))
+          t)
+        (current-column)
+      (if (not (hy--anything-after? last-sexp-start))
+          (1+ (current-column))
+        (goto-char last-sexp-start)  ; Align with function argument
+        (current-column)))))
+#+END_SRC
+
+    Normal indent does the most work. To notice, if we are on the next line
+    without a function arg above, then ~last-sexp-start~ will be nil as
+    ~backward-sexp~ will throw an error and the ~setq~ won't go off.
+
+    If there is a function call above, then the ~current-column~ of the
+    innermost, non-opening sexp, will end up as the indent point.
+
+    If we indent the line of the funcall, it will jump to the containing sexp
+    and calculate its indent.
+
+    Other indentation functions are a bit more advanced in that they track the
+    number of prior sexps in the indent-function to distinguish between eg. the
+    then and else clause of an if statement. Those cases use the same
+    fundamentals that are seen here.
+
+    Developing indentation from scratch can be challenging. The approach I took
+    was to look at clojure's indentation and trim it down until it fit this
+    language. I've removed most of the extraneous details that it adds to handle
+    special rules for eg. ~clojure.spec~ but it is still possible that I could
+    trim this further.
+
+* Font Locks and Highlighting
+
+  Two symbols are the entry points to be aware of into font locking:
+  ~hy-font-lock-kwds~ and ~hy-font-lock-syntactic-face-function~.
+
+#+BEGIN_SRC lisp
+(setq font-lock-defaults
+        '(hy-font-lock-kwds
+          nil nil
+          (("+-*/.<>=!?$%_&~^:@" . "w"))  ; syntax alist
+          nil
+          (font-lock-mark-block-function . mark-defun)
+          (font-lock-syntactic-face-function  ; Differentiates (doc)strings
+           . hy-font-lock-syntactic-face-function)))
+#+END_SRC
+
+** Font lock keywords
+
+   There exists many posts on modifying the variable ~font-lock-keywords~.
+
+   The approach taken in ~hy-mode~ is to separate out the language by category:
+
+#+BEGIN_SRC lisp
+(defconst hy--kwds-constants
+  '("True" "False" "None" "Ellipsis" "NotImplemented")
+  "Hy constant keywords.")
+
+(defconst hy--kwds-defs
+  '("defn" "defun"
+    "defmacro" "defmacro/g!" "defmacro!"
+    "defreader" "defsharp" "deftag")
+  "Hy definition keywords.")
+
+(defconst hy--kwds-operators
+  '("!=" "%" "%=" "&" "&=" "*" "**" "**=" "*=" "+" "+=" "," "-"
+    "-=" "/" "//" "//=" "/=" "<" "<<" "<<=" "<=" "=" ">" ">=" ">>" ">>="
+    "^" "^=" "|" "|=" "~")
+  "Hy operator keywords.")
+
+;; and so on
+#+END_SRC
+
+    And then use the amazing ~rx~ macro for constructing the regexes.
+
+    Now due to ~rx~ being a macro and its internals, in order to use variable
+    definitions in the regex construction we have to call ~rx-to-string~ instead.
+
+    The simplest definition:
+
+#+BEGIN_SRC lisp
+(defconst hy--font-lock-kwds-constants
+  (list
+   (rx-to-string
+    `(: (or ,@hy--kwds-constants)))
+
+   '(0 font-lock-constant-face))
+
+  "Hy constant keywords.")
+#+END_SRC
+
+    A more complex example with multiple groups taking different faces:
+
+#+BEGIN_SRC lisp
+(defconst hy--font-lock-kwds-defs
+  (list
+   (rx-to-string
+    `(: (group-n 1 (or ,@hy--kwds-defs))
+        (1+ space)
+        (group-n 2 (1+ word))))
+
+   '(1 font-lock-keyword-face)
+   '(2 font-lock-function-name-face nil t))
+
+  "Hy definition keywords.")
+#+END_SRC
+
+    Of course not all highlighting constructs are determined by symbol name. We
+    can highlight the shebang line for instance as:
+
+#+BEGIN_SRC lisp
+(defconst hy--font-lock-kwds-shebang
+  (list
+   (rx buffer-start "#!" (0+ not-newline) eol)
+
+   '(0 font-lock-comment-face))
+
+  "Hy shebang line.")
+#+END_SRC
+
+    We then collect all our nice and modular font locks as ~hy-font-lock-kwds~ that we set earlier:
+
+#+BEGIN_SRC lisp
+(defconst hy-font-lock-kwds
+  (list hy--font-lock-kwds-constants
+        hy--font-lock-kwds-defs
+        ;; lots more ...
+        hy--font-lock-kwds-shebang)
+
+  "All Hy font lock keywords.")
+#+END_SRC
+
+** Syntactic face function
+
+   This function is typically used for distinguishing between string,
+   docstrings, and comments. It does not need to be set unless you want to
+   distinguish docstrings.
+
+#+BEGIN_SRC lisp
+(defun hy--string-in-doc-position? (state)
+  "Is STATE within a docstring?"
+  (if (= 1 (hy--start-of-string state))  ; Identify module docstring
+      t
+    (-when-let* ((first-sexp (hy--sexp-inermost-char state))
+                 (function (save-excursion
+                             (goto-char (1+ first-sexp))
+                             (thing-at-point 'symbol))))
+      (s-matches? (rx "def" (not blank)) function))))  ; "def"=="setv"
+
+(defun hy-font-lock-syntactic-face-function (state)
+  "Return syntactic face function for the position represented by STATE.
+STATE is a `parse-partial-sexp' state, and the returned function is the
+Lisp font lock syntactic face function. String is shorthand for either
+a string or comment."
+  (if (hy--in-string? state)
+      (if (hy--string-in-doc-position? state)
+          font-lock-doc-face
+        font-lock-string-face)
+    font-lock-comment-face))
+#+END_SRC
+
+    It is rather straightforward - we start out within either a string or
+    comment. If needed, we jump to the first sexp and see if it is a "def-like"
+    symbol, in which case we know its a doc.
+
+    This implementation isn't perfect as any string with a parent def-sexp will
+    use the doc-face, so if your function returns a raw string, then it will be
+    highlighted as if its a doc.
+
+* Context sensitive syntax
+
+  An advanced feature Emacs enables is context-sensitive syntax. Some examples
+  are multi-line python strings, where there must be three single quotes
+  together, or haskell's multiline comments.
+
+  Hy implements multiline string literals for automatically escaping quote
+  characters. The syntax is ~#[optional-delim[the-string]optional-delim]~ where
+  the string can span lines.
+
+  In order to identify and treat the bracket as a string, we look to setting the
+  ~syntax-propertize-function~.
+
+  It takes two arguments, the start and end points with which to search through.
+  ~syntax.el~ handles the internals of limiting and passing the start and end
+  and applying/removing the text properties as the construct changes.
+
+#+BEGIN_SRC lisp
+(defun hy--match-bracket-string (limit)
+  "Search forward for a bracket string literal."
+  (re-search-forward
+   (rx "#["
+       (0+ not-newline)
+       "["
+       (group (1+ (not (any "]"))))
+       "]"
+       (0+ not-newline)
+       "]")
+   limit
+   t))
+
+(defun hy-syntax-propertize-function (start end)
+  "Implements context sensitive syntax."
+  (save-excursion
+    (goto-char start)
+
+    ;; Start goes to current line, need to go to char-before the #[ block
+    (when (nth 1 (syntax-ppss))
+      (goto-char (- (hy--sexp-inermost-char (syntax-ppss)) 2)))
+
+    (while (hy--match-bracket-string end)
+      (put-text-property (1- (match-beginning 1)) (match-beginning 1)
+                         'syntax-table (string-to-syntax "|"))
+
+      (put-text-property (match-end 1) (1+ (match-end 1))
+                         'syntax-table (string-to-syntax "|")))))
+#+END_SRC
+
+  We go to the start and jump before its innermost containing sexp begins minus
+  two for the hash sign and bracket characters.
+
+  If the regex matches a bracket string, we then set the innermost brackets on
+  both sides to have the ~string-fence~ syntax.
+
+  When the syntax is set - ~parse-partial-sexp~ and in particular font lock mode
+  and ~indent-line~ will now recognize that block as a string - so proper
+  indentation and highlighting follow immediately. And when we modify the
+  brackets, the string-fence syntax is removed and behaves as expected.
+
+  This function can handle any kind of difficult syntactic constructs. For
+  instance, I could modify it to only work if the delimiters on both side of the
+  bracket string are the same. I could also associate some arbitrary, custom
+  text property that other parts of hy-mode interact with.
+
+  Note that there is the macro ~syntax-propertize-rules~ for automating the
+  searching and ~put-text-property~ portions. I prefer to do the searching and
+  application manually to 1. have more flexibility and 2. step through the trace
+  easier.
+
+* Closing
+
+  Building a major mode teaches a lot about how Emacs works. I'm sure I've made
+  errors, but so far this has been enough to get ~hy-mode~ up and running. The
+  difference in productivity in Hy I've enjoyed since taking maintainer-ship has
+  made the exercise more than worth it.
+
+  I also have auto-completion and shell/process integration working which I'll
+  touch on in future posts.
