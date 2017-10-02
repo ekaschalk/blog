@@ -1,4 +1,4 @@
-#+TITLE: Deep dive into writing a major mode - Part 1
+#+TITLE: Deep diving into a major mode - Part 1
 #+SLUG: major-mode-part-1
 #+DATE: 2017-09-22
 #+CATEGORIES: emacs
@@ -7,18 +7,77 @@
 
 I've taken up maintaining ~hy-mode~ - a major mode for lispy python [[https://github.com/hylang/hy-mode][found here.]]
 
-This series will detail my experience adding autocompletion, indentation, shell
-integration, and so on for a lisp.
+I narrate my working through specific problems in auto-completion, indentation,
+shell integration, and so on. These posts are my working through these problems,
+if better solutions are available or I'm wrong, please let me know!
 
-These will not be tutorials. The intent is to be dense and narrate how I worked
-through specific problems I encountered. My steps and solutions might not be
-best - I welcome feedback.
+All code snippets require the Emacs packages ~dash~ and ~s~.
 
-Although this series focuses on a lisp, the lessons help in any language.
+* Syntax Tables
 
-* Implementing Indentation
+The first step in major modes is the syntax table.
 
-Look through ~calculate-lisp-indent~, the indentation workhorse, and you will
-quickly see indentation is /hard/.
+In any major mode run ~describe-syntax~ to see it's syntax table. As we are
+working with a lisp, we copy its syntax-table to start with.
 
-First we must become familiar with ~parse-partial-sexp~,
+#+BEGIN_SRC lisp
+(defconst hy-mode-syntax-table
+  (-let [table
+         (copy-syntax-table lisp-mode-syntax-table)]
+    ;; syntax modifications...
+    table)
+  "Hy modes syntax table.")
+#+END_SRC
+
+Configuration is performed with ~modify-syntax-entry~, its docstring provides
+all the syntactic constructs we can pick from.
+
+A subset to be familiar with:
+
+- ( ) : ~open/close parenthesis~. These are for all bracket-like constructs such
+  as [ ] or { }. The first character should be the syntactic construct, namely
+  "(" or ")", and the second character should be the closing delimiter.
+
+#+BEGIN_SRC lisp
+(modify-syntax-entry ?\{ "(}" table)
+(modify-syntax-entry ?\} "){" table)
+(modify-syntax-entry ?\[ "(]" table)
+(modify-syntax-entry ?\] ")[" table)
+#+END_SRC
+
+- " : ~string quote~. Since we copy lisp-mode's table, the " is already set.
+
+- ' : ~prefix character~.
+TODO
+
+#+BEGIN_SRC lisp
+;; Quote characters are prefixes
+(modify-syntax-entry ?\~ "'" table)
+(modify-syntax-entry ?\@ "'" table)
+#+END_SRC
+
+- _ and w : ~symbol and word constituent~ respectively.
+TODO
+
+#+BEGIN_SRC lisp
+;; "," is a symbol in Hy, namely the tuple constructor
+(modify-syntax-entry ?\, "_ p" table)
+
+;; "|" is a symbol in hy, naming the or operator
+(modify-syntax-entry ?\| "_ p" table)
+
+;; "#" is a tag macro, we include # in the symbol
+(modify-syntax-entry ?\# "_ p" table)
+#+END_SRC
+
+- | : ~generic string fence~. A more general string quote syntactic construct.
+  Used for delimiting multi-line strings like with triple quotes in Python. I go
+  into depth on this construct in the "context-sensitive syntax" section.
+
+* Indentation
+
+  Look through ~calculate-lisp-indent~, the indentation workhorse of ~lisp-mode~ derivatives,
+  and it is quickly seen that indentation is /hard/.
+
+  The function at heart is ~parse-partial-sexp~, taking limiting points and
+  retrieving a 10 element list describing the syntax at the point.
