@@ -29,12 +29,12 @@ This problem significantly hampers ligature adoption.
 I do not believe any editor implements a solution to ligatures such that you see
 the indentation you want to see, while the true indentation remains correct.
 
-I present a proof-of-concept solution to ligature spacing.
+I present a proof-of-concept solution to ligature spacing,
 
 * How Emacs displays text
 
-Emacs allows ~text-properties~ to associated with strings. A property can be
-anything, while some property names tell Emacs to handle the text in a
+Emacs associates ~text-properties~ with strings. A property can be anything.
+Some property names are special and tell Emacs to handle the text in a
 particular way, like ~face~ for how a text is highlighted.
 
 An ~overlay~ has associated text-properties but is buffer-local. So when we move
@@ -43,7 +43,7 @@ not be carried over.
 
 Properties to be aware of:
 
-- ~display~ : How Emacs displays for that string, can be any string.
+- ~display~ : How Emacs displays that region, can be any string.
 - ~invisible~ : Whether the text should be displayed.
 - ~modification-hooks~ : When text in the overlay is edited, run these hooks.
 - ~evaporate~ (overlays) : Once the overlay is "done-with", delete the overlay.
@@ -236,7 +236,6 @@ collapsing all the leading spaces as needed.
                (start (point))
                (end (+ num-spaces (point))))
 
-
          ;; only add invisible spaces if the indentations differ
          (unless (<= num-spaces 1)
             (setq space-overlay (make-overlay start end))
@@ -268,7 +267,12 @@ Enable ~lig-mode~ to see:
 
 The indentation we see is not the true indentation anymore!
 
+The full and current code is [[https://github.com/ekaschalk/emacs-ligatures][hosted here]].
+
 The missing space on the second hello is a bug. There are many issues with this
 implementation - this is a proof of concept. I suspect a completely correct
 solution to be still some time and effort away, if only because this approach is
 incredibly inefficient.
+
+This post shows that we maybe can have our cake and eat it too in regards to
+ligatures.
