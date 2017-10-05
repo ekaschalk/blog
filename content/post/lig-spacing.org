@@ -1,0 +1,274 @@
+#+TITLE: Solving ligature spacing in Emacs - proof of concept
+#+SLUG: lig-spacing
+#+DATE: 2017-10-05
+#+CATEGORIES: emacs
+#+SUMMARY: Making ligatures group-friendly.
+#+DRAFT: false
+
+Ligatures are single-character replacements of strings. Examples of ligatures:
+replacing "alpha" with the alpha symbol and "!=" with the a slashed equal sign.
+See <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical
+Notation</a> for details and pictures.
+
+There is a serious flaw with ligatures - either the indentation you see with
+ligatures or without ligatures is correct, not both. So if someone that does not
+use ligatures works on your code, your indentation's will not match. An example:
+
+#+BEGIN_SRC lisp
+;; True indentation, what you want others to see
+(alpha b
+       c)
+
+;; Emacs indentation, what you want to see when working
+(a b
+   c)
+#+END_SRC
+
+This problem significantly hampers ligature adoption.
+
+I do not believe any editor implements a solution to ligatures such that you see
+the indentation you want to see, while the true indentation remains correct.
+
+I present a proof-of-concept solution to ligature spacing.
+
+* How Emacs displays text
+
+Emacs allows ~text-properties~ to associated with strings. A property can be
+anything, while some property names tell Emacs to handle the text in a
+particular way, like ~face~ for how a text is highlighted.
+
+An ~overlay~ has associated text-properties but is buffer-local. So when we move
+that text to another buffer, if that overlay had a face, then that face would
+not be carried over.
+
+Properties to be aware of:
+
+- ~display~ : How Emacs displays for that string, can be any string.
+- ~invisible~ : Whether the text should be displayed.
+- ~modification-hooks~ : When text in the overlay is edited, run these hooks.
+- ~evaporate~ (overlays) : Once the overlay is "done-with", delete the overlay.
+
+** Compose region
+
+Additionally, ~compose-region~ is similar to ~display~ in that the composed region
+is displayed as (possibly many) characters. Current implementations of ligatures
+all leverage compose-region by searching the buffer for say alpha and composing
+from alphas beginning to end point the Unicode symbol for alpha.
+
+There are several important distinctions between ~compose-region~ and ~put-text-property 'display~
+
+1. Indentation uses the composed character for indenting while the text-property
+   display indents with the true, original string.
+2. Composition cannot be set for overlays. The internal ~composition~ text property,
+   unlike all other properties, cannot be put manually.
+3. Editing within a composed region will undo the composition while one must
+   delete the whole region with the display property to undo the display.
+
+* Working through a solution
+** To compose or display the ligature?
+
+Because composition adjusts the underlying indentation, it cannot be used for a
+ligature spacing solution. Indentation cannot be adjusted in a major-mode
+agnostic manner. Indentation always considers the true number of characters
+preceding the text on the line, so dynamically adding invisible spaces will not
+work.
+
+** But how to make editing a display behave like a composition?
+
+It is a serious issue to have to delete the whole text for the ligature to
+disappear.
+
+The solution is the ~modification-hooks~ text-property.
+
+#+BEGIN_SRC lisp
+(defun lig-mod-hook (overlay post-mod? start end &optional _)
+  (when post-mod?
+    (overlay-put overlay 'display nil)
+    (overlay-put overlay 'modification-hooks nil)))  ; force evaporation
+
+(overlay-put lig-overlay 'modification-hooks '(lig-mod-hook))
+#+END_SRC
+
+Now editing text with the display property will behave as desired.
+
+** So how to visually collapse the indentation?
+
+We could set ~invisible~ on the first 5 spaces of the line to collapse the
+visual indentation by 5. But the invisible property will modify subsequent
+line's indentation by 5 fewer (if necessary), an issue that cannot be resolved
+as we cannot determine in general the "if necessary" part.
+
+The trick is to make the 5 first spaces display as one space. Because display
+doesn't modify indentation, subsequent lines will be indented properly.
+
+#+BEGIN_SRC lisp
+(overlay-put space-overlay 'display " ")
+#+END_SRC
+
+** How do we determine the indentation we want to see then?
+
+We let Emacs do the work - we create a mirror buffer where the ligatures are
+actually composed and compare the differences in indentation.
+
+Overlays are not just buffer-local, they also do not transfer to indirect
+buffers. Ideally we would have a hidden indirect buffer where we keep ligatures
+composed instead. Unfortunately, since the ~composition~ text property is
+special, it can only be set with ~compose-region~ which does not work for
+overlays.
+
+Further, calculating indentation always adjusts the indentation. The
+significance is that whenever we indent the indirect buffer, all the text will
+move back-and-forth. So indirect buffers are out.
+
+Instead we create temporary buffers for the composition and retrieve an alist of
+lines and their composed indentations.
+
+* A working example
+
+The current ligature snippets floating around hack ~font-locks~ to perform the
+ligature substitutions. I recently became familiar with context-sensitive syntax
+highlighting via the ~syntax-propertize-function~ in my work on ~hy-mode~.
+
+I develop a minimal major-mode ~lig-mode~ that uses the syntax function to
+implement ligatures.
+
+** Setup
+
+First we setup a basic major-mode for testing.
+
+#+BEGIN_SRC lisp
+(provide 'lig-mode)
+
+(add-to-list 'auto-mode-alist '("\\.lig\\'" . lig-mode))
+
+(define-derived-mode lig-mode fundamental-mode "Lig"
+  (setq-local indent-line-function 'lisp-indent-line)
+  (setq-local syntax-propertize-function 'lig-syntax-propertize-function))
+#+END_SRC
+
+This is a proof-of-concept - we implement spacing for a single ligature for now.
+Lets replace "hello" with a smiley face.
+
+#+BEGIN_SRC lisp
+(defun lig--match-lig (limit)
+  (re-search-forward (rx word-start "hello" word-end) limit t))
+
+(setq lig-char #x263a)
+(setq lig-str "☺")
+#+END_SRC
+
+** Determining the indents we want to see
+
+We copy the buffer contents to a temporary buffer, search and compose the
+symbols, indent the buffer, and copy the indentation for each line.
+
+#+BEGIN_SRC lisp
+(defvar lig-diff-indents nil)
+
+(defun lig-get-diff-indents ()
+  (setq lig-diff-indents nil)
+  (save-excursion
+    ;; Compose the ligatures
+    (goto-char (point-min))
+    (while (re-search-forward (rx word-start "hello" word-end) nil t)
+      (compose-region (match-beginning 0) (match-end 0) lig-char))
+
+    ;; Change indent to match the composed symbol
+    (indent-region (point-min) (point-max))
+
+    ;; Build an alist of line and indention column
+    (goto-char (point-min))
+    (setq line 1)
+    (while (< (point) (point-max))
+      (push (cons line (current-indentation))
+            lig-diff-indents)
+      (forward-line)
+      (setq line (1+ line)))))
+
+(defun run-lig-get-diff-indents ()
+  (let ((true-buffer (current-buffer)))
+    (with-temp-buffer
+      (fundamental-mode)
+      (setq-local indent-line-function 'lisp-indent-line)
+      (insert-buffer-substring-no-properties true-buffer)
+      (lig-get-diff-indents))))
+#+END_SRC
+
+** Bringing it together
+
+For details on how ~syntax-propertize-function~ works, <a href='{{< relref
+"major-mode-part-1.org" >}}'>check this post</a>.
+
+Whenever we edit the buffer this hook will run, recalculating and visually
+collapsing all the leading spaces as needed.
+
+#+BEGIN_SRC lisp
+(defun lig-syntax-propertize-function (start-limit end-limit)
+  ;; Make sure visual indentations are current
+  (run-lig-get-diff-indents)
+
+  (save-excursion
+    (goto-char (point-min))
+
+    (while (lig--match-lig end-limit)
+      (let ((start (match-beginning 0))
+            (end (match-end 0)))
+        (unless (-contains? (overlays-at start) lig-overlay)
+          ;; Create and set the lig overlays if not already set
+          (setq lig-overlay (make-overlay start end))
+          (overlay-put lig-overlay 'display lig-str)
+          (overlay-put lig-overlay 'evaporate t)
+          (overlay-put lig-overlay 'modification-hooks '(lig-mod-hook)))))
+
+    ;; Remove all spacing overlays from buffer
+    (remove-overlays nil nil 'invis-spaces t)
+
+    ;; Recalcualte and add all spacing overlays
+    (goto-char (point-min))
+    (setq line 1)
+
+    (while (< (point) (point-max))
+      ;; Don't add the spacing overlay until we indent
+      (unless (> (+ (current-indentation) (point))
+                 (point-max))
+        (let* ((vis-indent (alist-get line lig-diff-indents))
+               (num-spaces (- (current-indentation) vis-indent))
+               (start (point))
+               (end (+ num-spaces (point))))
+
+
+         ;; only add invisible spaces if the indentations differ
+         (unless (<= num-spaces 1)
+            (setq space-overlay (make-overlay start end))
+            (overlay-put space-overlay 'invis-spaces t)
+            (overlay-put space-overlay 'display " ")
+            (overlay-put space-overlay 'evaporate t))
+
+         (setq line (1+ line))
+         (forward-line))))))
+#+END_SRC
+
+* The result
+
+Enable ~lig-mode~ to see:
+
+#+BEGIN_SRC lisp
+;; The true text
+(hello how
+       are
+       you (hello hi
+                  again))
+
+;; What we see
+(☺ how
+   are
+   you (☺ hi
+         again))
+#+END_SRC
+
+The indentation we see is not the true indentation anymore!
+
+The missing space on the second hello is a bug. There are many issues with this
+implementation - this is a proof of concept. I suspect a completely correct
+solution to be still some time and effort away, if only because this approach is
+incredibly inefficient.
