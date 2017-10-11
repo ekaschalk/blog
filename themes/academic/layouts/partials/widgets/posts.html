@@ -10,15 +10,6 @@
     {{ with $page.Params.subtitle }}<p>{{ . | markdownify }}</p>{{ end }}
     {{ if gt $posts_len $page.Params.count }}
     <p class="view-all">
-      <a href="{{ "/post/" | relLangURL }}">
-        <b>All Posts</b>
-        <i class="fa fa-angle-double-right"></i>
-      </a>
-      <br>
-      <a href="{{ "/categories/emacs/" | relLangURL }}">
-        <b>Emacs Posts</b>
-        <i class="fa fa-angle-double-right"></i>
-      </a>
 
       <h4 class="mobile-hide">
         Posts
@@ -48,6 +39,12 @@
         {{ partial "post_li" $params }}
       {{ end }}
     {{ end }}
+
+    <h3><a href="{{ "/post/" | relLangURL }}">
+      <i class="fa fa-angle-double-right"></i>
+      <b>More Posts</b>
+      <i class="fa fa-angle-double-right"></i>
+    </a></h3>
 
   </div>
 </div>

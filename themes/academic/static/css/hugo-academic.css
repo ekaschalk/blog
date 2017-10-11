@@ -449,7 +449,6 @@ article {
 }
 
 .article-metadata {
-  margin-bottom: 20px;
   line-height: 30px; /* Match share bar line height. */
   font-size: 14px;
   letter-spacing: 0.03em;
@@ -759,6 +758,7 @@ footer p {
 
 .site-footer,
 footer a#back_to_top i {
+  margin: 0px;
   color: #899596;
 }
 

@@ -27,9 +27,6 @@ weight = 100
 
 Software Engineer practicing scientific computing, full time lisper.
 
-*Modern Emacs* aims to achieve:
+*Modern Emacs* details my journey learning and hacking on Emacs.
 
-1. A practical, clean, and modern aesthetic.
-2. Optimal outline-based code navigation.
-3. An idiomatic, documented, and modular config.
-4. To inspire creativity and personalization in your own Emacs.
+I hope to inspire creativity and personalization in your own Emacs.
