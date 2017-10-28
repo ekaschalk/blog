@@ -3,7 +3,7 @@
 #+DATE: 2017-10-13
 #+CATEGORIES: emacs emacs-lisp
 #+SUMMARY: something
-#+DRAFT: false
+#+DRAFT: true
 
 I present exercises ordered by aspect and difficulty with the intent of making
 more tangible the Emacs slogan "the infinitely customizable editor".
