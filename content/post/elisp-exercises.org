@@ -1,0 +1,60 @@
+#+TITLE: Emacs-lisp exercises and solutions
+#+SLUG: elisp-exercises
+#+DATE: 2017-10-13
+#+CATEGORIES: emacs emacs-lisp
+#+SUMMARY: something
+#+DRAFT: false
+
+I present exercises ordered by aspect and difficulty with the intent of making
+more tangible the Emacs slogan "the infinitely customizable editor".
+
+Be familiar with:
+
+1. Lisp syntax.
+2. Emacs help facilities like ~describe-function~.
+
+To learn:
+
+1. How to work with Emacs ~rx~ macro for regexes.
+2. Traverse buffers and org-mode.
+
+* The basics
+
+** Regexes and the rx macro
+
+The ~rx~ macro makes maintaining and writing regexes enjoyable and easy.
+
+~match-beginning~ and ~match-end~ are Emacs facilities for extracting regex
+matches for particular groups.
+
+Solve the following exercises with the ~rx~ syntax.
+
+Q1 (E) - Match the string in an org-mode header of any level.
+
+#+BEGIN_SRC lisp
+(rx (1+ "*")
+    space
+    (group (0+ not-newline)))
+#+END_SRC
+
+There is the ~group-n~ construct for specifying the group of a particular
+particular part of the regex.
+
+Q2 (E) - Match both the string and the level of an org-mode header.
+
+#+BEGIN_SRC lisp
+(rx (group-n 1 (1+ "*"))
+    space
+    (group-n 2 (0+ not-newline)))
+#+END_SRC
+
+** Org-mode
+
+Q1 (E) - Get the heading name string above the current point.
+
+#+BEGIN_SRC lisp
+(defun ex-current-heading ()
+  (org-previous-visible-heading 1)
+  (re-search-forward (rx (1+ "*") space))
+  (buffer-substring (point) (line-end-position)))
+#+END_SRC
