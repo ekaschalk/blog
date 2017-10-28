@@ -1,0 +1,108 @@
+** Font locking the Shell Prompt
+
+   This simple-sounding feature is involved and perhaps worth a post all its own.
+
+   I'm not sure if any shells besides python implement this feature. For example,
+   type ~(let ...)~ in ~ielm~ and the let won't be highlighted.
+
+   Buffers taking from ~comint-mode~ will not highlight the current prompt. Once
+   entered, the prompt output will switch to the ~comint-highlight-input~ face.
+
+   We can't enable ~font-lock-mode~ for ~inferior-hy-mode~ as otherwise the
+   highlight input face will be overwritten, output will be colored
+   (undesirable), and colors outputted by the shell (like for errors) will be
+   overwritten.
+
+   Due to font-lock internals, turning on font-lock just for an ever-changing
+   marker range is also not possible.
+
+   The solution, adapted from ~python-mode~, is to capture the prompt while it's
+   being entered through the low-level ~post-command-hook~. This implementation
+   is not a copy of Python's - compare the two and you will see the extra
+   difficulty and complexity in the original implementation.
+
+   Two macros are core:
+
+#+BEGIN_SRC lisp
+(defmacro hy--shell-with-shell-buffer (&rest forms)
+  "Execute FORMS in the shell buffer."
+  (-let [shell-process
+         (gensym)]
+    `(-let [,shell-process
+            (hy-shell-get-process)]
+       (with-current-buffer (process-buffer ,shell-process)
+         ,@forms))))
+
+(defmacro hy--shell-with-font-locked-shell-buffer (&rest forms)
+  "Execute FORMS in the shell buffer with font-lock turned on."
+  `(hy--shell-with-shell-buffer
+    (save-current-buffer
+      (unless (hy--shell-buffer?)
+        (setq hy-shell-buffer (hy--shell-get-or-create-buffer)))
+      (set-buffer hy-shell-buffer)
+
+      (unless (font-lock-mode) (font-lock-mode 1))
+      (unless (derived-mode-p 'hy-mode) (hy-mode))
+
+      ,@forms)))
+#+END_SRC
+
+   It is easier to see the point of this macro in the command hook.
+
+   If the situation calls for it, we extract the current prompt input from the
+   end of the last prompt via ~comint-last-prompt~. We do some basic buffer
+   management and startup the shell-font-lock macro.
+
+   The font lock is applied and the deleted region is replaced with the
+   extracted text with its face property moved to the font-lock-face property.
+
+#+BEGIN_SRC lisp
+(defun hy--shell-faces-to-font-lock-faces (text &optional start-pos)
+  "Set all 'face in TEXT to 'font-lock-face optionally starting at START-POS."
+  (let ((pos 0)
+        (start-pos (or start-pos 0)))
+    (while (and (/= pos (length text))
+                (setq next (next-single-property-change pos 'face text)))
+      (let* ((plist (text-properties-at pos text))
+             (plist (-if-let (face (plist-get plist 'face))
+                        (progn (plist-put plist 'face nil)  ; Swap face
+                               (plist-put plist 'font-lock-face face))
+                      plist)))
+        (set-text-properties (+ start-pos pos) (+ start-pos next) plist)
+        (setq pos next)))))
+
+(defun hy--shell-fontify-prompt-post-command-hook ()
+  "Fontify just the current line in `hy-shell-buffer' for `post-command-hook'.
+
+Constantly extracts current prompt text and executes and manages applying
+`hy--shell-faces-to-font-lock-faces' to the text."
+  (-when-let* (((_ . prompt-end) comint-last-prompt)
+               (_ (and prompt-end
+                       (> (point) prompt-end)  ; new command is being entered
+                       (hy--shell-current-buffer-a-process?))))  ; process alive?
+      (let* ((input (buffer-substring-no-properties prompt-end (point-max)))
+             (deactivate-mark nil)
+             (buffer-undo-list t)
+             (font-lock-buffer-pos nil)
+             (text (hy--shell-with-font-locked-shell-buffer
+                    (delete-region (line-beginning-position) (point-max))
+                    (setq font-lock-buffer-pos (point))
+                    (insert input)
+                    (font-lock-ensure)
+                    (buffer-substring font-lock-buffer-pos (point-max)))))
+        (hy--shell-faces-to-font-lock-faces text prompt-end))))
+#+END_SRC
+
+#+BEGIN_SRC lisp
+(defun hy--shell-font-lock-turn-on ()
+  "Turn on fontification of current line for hy shell."
+  (hy--shell-with-shell-buffer
+   (hy--shell-kill-buffer)
+
+   (setq-local hy-shell-buffer nil)
+
+   (add-hook 'post-command-hook
+             'hy--shell-fontify-prompt-post-command-hook nil 'local)
+   (add-hook 'kill-buffer-hook
+             'hy--shell-kill-buffer nil 'local)))
+#+END_SRC

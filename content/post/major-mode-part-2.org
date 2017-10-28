@@ -1,0 +1,598 @@
+#+TITLE: Deep diving into a major mode - Part 2 (IDE Features)
+#+SLUG: major-mode-part-2
+#+DATE: 2017-10-29
+#+CATEGORIES: emacs
+#+SUMMARY: Adding IDE features to hy-mode.
+#+DRAFT: false
+
+In <a href='{{< relref "major-mode-part-1.org" >}}'>Part 1</a> I addressed:
+syntax tables, indentation, font locking, and context-sensitive syntax.
+
+We now build out a "Hyde" with: shell/async process integration, Eldoc support,
+and Autocompletion. Also "shift-K" documentation lookup for the symbol-at-point.
+
+[[file:/img/eldoc-auto.png]]
+
+* Building Inferior Hy
+** The basics
+
+   The easiest way to add a REPL to your major-mode is through setting the variable
+   ~inferior-lisp-program~, possibly adding setup code through
+   ~inferior-lisp-load-command~, then running the ~inferior-lisp~ command.
+
+#+BEGIN_SRC lisp
+;; within the define-derived-mode hy-mode setup...
+(setq-local inferior-lisp-program "hy")
+(setq-local inferior-lisp-load-command "(print \"Hy there!\")")
+#+END_SRC
+
+    This isn't sufficient for advanced shells. The custom is to create a
+    function named ~run-hy~ (eg. there is ~run-python~, ~run-haskell~...)
+    which starts up the shell, sets ~inferior-hy-mode~ , and switches to the
+    shell.
+
+** Comint-mode
+
+   It is a "Major mode for interacting with an inferior interpreter". Most-all
+   inferior modes will derive from ~comint-mode~. It provides many utilities for
+   interacting with shell-like processes.
+
+   Hy mode's prompt is a right arrow.
+
+#+BEGIN_SRC lisp
+(define-derived-mode inferior-hy-mode comint-mode "Inferior Hy"
+  "Major mode for Hy inferior process."
+  (setq-local indent-tabs-mode nil)
+
+  ;; How to dispaly the process status in the mode-line
+  (setq mode-line-process '(":%s"))
+  ;; This disables editing and traversing the "=>" prompts
+  (setq-local comint-prompt-read-only t)
+  ;; Lets comint mode recognize the prompt
+  (setq-local comint-prompt-regexp (rx bol "=>" space))
+
+  ;; ... other specialized config introduced later ...
+  )
+#+END_SRC
+
+   There are several comint components we will make use of:
+
+   1. ~comint-last-prompt~ - a cons cell of begin/end markers of last prompt.
+   2. ~comint-send-string~ - perform ~process-send-string~ with comint
+      bookkeeping.
+   3. ~comint-redirect-send-command-to-process~ and ~comint-redirect-completed~ - for sending strings asynchronously.
+   4. ~comint-(pre)output-filter-functions~ - entry points into capturing and
+      cleaning process output.
+   5. ~make-comint-in-buffer~ - entry point into comint mode.
+
+** Managing buffers and processes
+
+   We must manage: the standard hy shell process, the internal hy process used
+   for autocompletion and eldoc, and temporal buffers for more advanced buffer
+   transformations of the standard hy shell process.
+
+   The configuration required of ~inferior-hy-mode~ :
+
+#+BEGIN_SRC lisp
+;;; Configuration
+
+(defconst hy-shell-interpreter "hy"
+  "Default Hy interpreter name.")
+
+(defvar hy-shell-interpreter-args "--spy"
+  "Default arguments for Hy interpreter.")
+
+;;; Internal
+
+(defconst hy-shell-buffer-name "Hy"
+  "Default buffer name for Hy interpreter.")
+
+(defconst hy-shell-internal-buffer-name "Hy Internal"
+  "Default buffer name for the internal Hy process.")
+
+(defvar hy-shell-buffer nil
+  "The current shell buffer for Hy.")
+
+(defvar hy--shell-output-filter-in-progress nil
+  "Whether we are waiting for output in `hy-shell-send-string-no-output'.")
+
+(defvar hy--shell-font-lock-enable t
+  "Whether the shell should font-lock the current line.")
+#+END_SRC
+
+    Now the building blocks of the shell can be defined.
+
+    The implementations are rather straightforward. To keep space down, only
+    name and docstring are provided:
+
+#+BEGIN_SRC lisp
+(defun hy--shell-format-process-name (proc-name)
+  "Format a PROC-NAME with closing astericks.")
+
+(defun hy-shell-get-process (&optional internal)
+  "Get process corr. to `hy-shell-buffer-name'/`hy-shell-internal-buffer-name'.")
+
+(defun hy--shell-current-buffer-process ()
+  "Get process associated with current buffer.")
+
+(defun hy--shell-current-buffer-a-process? ()
+  "Is `current-buffer' a live process?")
+
+(defun hy--shell-get-or-create-buffer ()
+  "Get or create `hy-shell-buffer' buffer for current hy shell process.")
+
+(defun hy--shell-buffer? ()
+  "Is `hy-shell-buffer' set and does it exist?")
+
+(defun hy--shell-kill-buffer ()
+  "Kill `hy-shell-buffer'.")
+
+(defun hy--shell-calculate-command (&optional internal)
+  "Calculate the string used to execute the inferior Hy process.")
+  ;; Straightforward string formatting - see: `shell-quote-argument'
+#+END_SRC
+
+** Starting up the shell
+
+   The commands above are enough to build out some basic shell support. Lets
+   look at ~run-hy~ :
+
+#+BEGIN_SRC lisp
+(defun run-hy (&optional cmd)
+  "Run an inferior Hy process.
+
+CMD defaults to the result of `hy--shell-calculate-command'."
+  (interactive)
+  (unless (executable-find "hy")
+    (message "Hy not found, activate a virtual environment with Hy."))
+
+  (-> (or cmd (hy--shell-calculate-command))
+     (hy--shell-make-comint hy-shell-buffer-name 'show)
+     get-buffer-process))
+#+END_SRC
+
+    Most of the work is delegated to ~hy--shell-make-comint~ as we also must
+    have the internal variant:
+
+#+BEGIN_SRC lisp
+(defun run-hy-internal ()
+  "Start an inferior hy process in the background for autocompletion."
+  (interactive)
+  (unless (executable-find "hy")
+    (message "Hy not found, activate a virtual environment containing Hy to use
+Eldoc, Anaconda, and other hy-mode features."))
+
+  (when (and (not (hy-shell-get-process 'internal))
+             (executable-find "hy"))
+    (-let [hy--shell-font-lock-enable
+           nil]
+      (prog1
+          (-> (hy--shell-calculate-command 'internal)
+             (hy--shell-make-comint hy-shell-internal-buffer-name nil 'internal)
+             get-buffer-process)
+        (hy--shell-send-internal-setup-code)
+        (message "Hy internal process successfully started")))))
+#+END_SRC
+
+    This is a simple variation of ~run-hy~ that passes the internal argument
+    through the hy shell building blocks and also sends setup code for
+    ~eldoc-mode~ and ~company-mode~.
+
+    Now we are ready to startup our ~inferior-hy-mode~ :
+
+#+BEGIN_SRC lisp
+(defun hy--shell-make-comint (cmd proc-name &optional show internal)
+  "Create and return comint process PROC-NAME with CMD, opt. INTERNAL and SHOW."
+  (-when-let* ((proc-buffer-name
+                (hy--shell-format-process-name proc-name))
+               (_
+                (not (comint-check-proc proc-buffer-name)))
+               (cmdlist
+                (split-string-and-unquote cmd))
+               (buffer
+                (apply 'make-comint-in-buffer proc-name proc-buffer-name
+                       (car cmdlist) nil (cdr cmdlist)))
+               (process
+                (get-buffer-process buffer)))
+    (with-current-buffer buffer
+      (inferior-hy-mode))
+    (when show
+      (display-buffer buffer))
+    (if internal
+        (set-process-query-on-exit-flag process nil)
+      (setq hy-shell-buffer buffer))
+    proc-buffer-name))
+#+END_SRC
+
+    All the work is once again delegated to our shell building blocks. There are
+    several things to notice:
+
+    1. If the process is meant to be autostarted/quited, make sure to use ~set-process-query-on-exit-flag~ to nil.
+    2. The ~cmdlist~ car is "hy" and cdr is the hy interpreter arguments.
+    3. Further accessing of the shell is done with the ~hy-shell-buffer~ variable.
+
+** Working with the shell
+
+   The shell is now functional, but we still don't have methods to send strings
+   to the shell (for instance, sending the current-form or the buffer for
+   evaluation). Nor do we have any support for asynchronously sending and
+   extracting information from our internal process.
+
+   Like always, lets define some utilities:
+
+#+BEGIN_SRC lisp
+(defun hy--shell-end-of-output? (string)
+  "Return non-nil if STRING ends with the prompt."
+  (s-matches? comint-prompt-regexp string))
+
+(defun hy--shell-output-filter (string)
+  "If STRING ends with input prompt then set filter in progress done."
+  (when (hy--shell-end-of-output? string)
+    (setq hy--shell-output-filter-in-progress nil))
+  "\n=> ")
+#+END_SRC
+
+    ~hy--shell-output-filter-in-progress~ is the critical component. Lets see how
+    it is used:
+
+#+BEGIN_SRC lisp
+(defun hy--shell-send-string (string &optional process internal)
+  "Internal implementation of shell send string functionality."
+  (let ((process (or process (hy-shell-get-process internal)))
+        (hy--shell-output-filter-in-progress t))
+    (comint-send-string process string)
+    (while hy--shell-output-filter-in-progress
+      (accept-process-output process))))
+#+END_SRC
+
+    The shell process is obtained, we set it to be in progress, and send it off
+    to comint. But how and when is the filter reset?
+
+    We come back to the ~comint-(pre)output-filter-functions~. When we send the
+    string via ~comint-send-string~, part of its bookkeeping is to apply these
+    filter functions to the output. However, the output can come in chunks, so
+    simply accepting the process output is not sufficient. We must recognize
+    when the last of the expected process output is retrieved and signal to stop
+    accepting output.
+
+    The difference between the pre and standard filters is when they are
+    applied. The pre variation is executed before the process output is inserted
+    into the buffer.
+
+    Looking back to ~hy--shell-output-filter~, what are the outcomes of using it
+    as a pre or standard filter? Lets look at the exposed send strings:
+
+#+BEGIN_SRC lisp
+(defun hy-shell-send-string-no-output (string &optional process internal)
+  "Send STRING to hy PROCESS and inhibit printing output."
+  (-let [comint-preoutput-filter-functions
+         '(hy--shell-output-filter)]
+    (hy--shell-send-string string process internal)))
+
+(defun hy-shell-send-string (string &optional process)
+  "Send STRING to hy PROCESS."
+  (-let [comint-output-filter-functions
+         '(hy--shell-output-filter)]
+    (hy--shell-send-string string process)))
+#+END_SRC
+
+    Lastly, these functions won't work for asynchronous ops like Eldoc and
+    Autocompletion. You will see a ~Blocking call inhibiting process output~ error messaged in the minibuffer.
+
+    The asynchronous version is different. We redirect the process output to a
+    temporary buffer and capture its output.
+
+    The key is the 100ms ~timeout~ argument passed to ~accept-process-output~.
+
+#+BEGIN_SRC lisp
+(defun hy--shell-send-async (string)
+  "Send STRING to internal hy process asynchronously."
+  (let ((output-buffer " *Comint Hy Redirect Work Buffer*")
+        (proc (hy-shell-get-process 'internal)))
+    (with-current-buffer (get-buffer-create output-buffer)
+      (erase-buffer)
+      (comint-redirect-send-command-to-process string output-buffer proc nil t)
+
+      (set-buffer (process-buffer proc))
+      (while (and (null comint-redirect-completed)
+                  (accept-process-output proc nil 100 t)))
+      (set-buffer output-buffer)
+      (buffer-string))))
+#+END_SRC
+
+    Our shell is now ready for autocompletion, eldoc, and other awesome IDE features.
+
+    I originally planned to go into font-locking the prompt input (highly
+    non-trivial), but given the length of this post I will provide and link to
+    it as a separate future post.
+
+* Autocompletion
+
+  All the work for autocompletion was in setting up the asynchronous process
+  support. Lets see how easy autocompletion becomes:
+
+#+BEGIN_SRC lisp
+(defconst hy-company-setup-code
+  "(import [hy.completer [Completer]])
+(setv --HYCOMPANY (Completer))"
+  "Autocompletion setup code to send to the internal process.")
+
+(defconst hy--company-regexp
+  (rx "'"
+      (group (1+ (not (any ",]"))))
+      "'"
+      (any "," "]"))
+  "Regex to extra candidates from --HYCOMPANY.")
+
+(defun hy--company-format-str (string)
+  "Format STRING to send to hy for completion candidates."
+  (when string
+    (format "(.%s --HYCOMPANY \"%s\")"
+            (cond ((s-starts-with? "#" string)  ; Tag matches broken in Hy atm
+                   "tag-matches")
+                  ((s-contains? "." string)
+                   "attr-matches")
+                  (t
+                   "global-matches"))
+            string)))
+
+(defun hy--company-candidates (string)
+  "Get candidates for completion of STRING."
+  (-when-let* ((command (hy--company-format-str string))
+               (candidates (hy--shell-send-async command))
+               (matches (s-match-strings-all hy--company-regexp candidates)))
+    (-select-column 1 matches)))  ; Get match-data-1 for each match
+
+(defun company-hy (command &optional arg &rest ignored)
+  (interactive (list 'interactive))
+  (cl-case command
+    (prefix (company-grab-symbol))
+    (candidates (hy--company-candidates arg))
+    (meta (-> arg hy--eldoc-get-docs hy--str-or-empty))))
+#+END_SRC
+
+    ~Completer~ is a hy builtin that completes a given string and does all the
+    work here. We simply call it's appropriate method, extract the items in the
+    retrieved list, and hand it off to company.
+
+    ~company-grab-symbol~ gets the current symbol which is handed off as ~arg~ in
+    the subsequent call.
+
+    The ~meta~ argument shows the eldoc output for the current selected company
+    candidate in the minibuffer, as seen in this post's initial image.
+
+    ~company-hy~ can then be enabled either through adding to ~company-backends~ or
+    for Spacemacs users adding:
+
+#+BEGIN_SRC lisp
+;; Technically this should be within a hy layer, but this still works uncaptured
+(spacemacs|add-company-backends
+  :backends company-hy
+  :modes hy-mode inferior-hy-mode)
+#+END_SRC
+
+    Developing a major-mode that accommodates Spacemacs users will be touched on
+    in future posts.
+
+* Eldoc
+
+  For those unfamiliar, in the initial image ~eldoc-mode~ provides the formatted
+  docstring and arguments in the minibuffer for the symbol-at-point (or
+  completion candidate).
+
+  Perhaps surprisingly, Eldoc is /a lot/ more challenging than autocompletion.
+
+  For starters, your language won't provide Eldoc like strings (formatted
+  argument list + first line of docstring) by default. How difficult inspecting
+  language constructs is entirely dependent on the language. Hy in particular is
+  difficult due to how macros are implemented and namespaced. I won't provide
+  the ~hy-eldoc-setup-code~ here, it can be found within the source.
+
+  Next, your implementation must mirror any relevant DSLs. For lisps, Eldoc
+  inspects the form opener. It is hydiomatic to:
+
+#+BEGIN_SRC lisp
+(setv x "hi")
+(.format "{} there" x)
+(setv a-list [])
+(.append a-list "friend")
+#+END_SRC
+
+  We need to send ~str.format~ and ~a-list.append~ - the form opener alone is
+  insufficient.
+
+** Implementation
+
+   Eldoc is setup via the ~eldoc-documentation-function~ :
+
+#+BEGIN_SRC lisp
+(defun hy-eldoc-documentation-function ()
+  "Drives `eldoc-mode', retrieves eldoc msg string for inner-most symbol."
+  (-> (hy--eldoc-get-inner-symbol)
+     hy--eldoc-get-docs))
+
+(defun hy--mode-setup-eldoc ()
+  (make-local-variable 'eldoc-documentation-function)
+  (setq-local eldoc-documentation-function 'hy-eldoc-documentation-function)
+  (eldoc-mode +1))
+#+END_SRC
+
+   There are three core components:
+
+   1. ~hy--eldoc-send~ for sending a formatted string and cleaning its output.
+   2. ~hy--eldoc-get-inner-symbol~ getting opening form and completing the dot DSL.
+   3. ~hy--eldoc-fontify-text~ for highlighting the final text string like in the image.
+
+   Lets look at fontifying first. We can't blindly apply Hy's font-locks as the
+   docstring isn't captured in quotes. Since the text is static, we just add the
+   faces to the string ourselves.
+
+#+BEGIN_SRC lisp
+(defun hy--fontify-text (text regexp &rest faces)
+  "Fontify portions of TEXT matching REGEXP with FACES."
+  (when text
+    (-each
+        (s-matched-positions-all regexp text)
+      (-lambda ((beg . end))
+        (--each faces
+          (add-face-text-property beg end it nil text))))))
+
+(defun hy--eldoc-fontify-text (text)
+  "Fontify eldoc TEXT."
+  (let ((kwd-rx
+         (rx string-start (1+ (not (any space ":"))) ":"))
+        (kwargs-rx
+         (rx symbol-start "&" (1+ word)))
+        (quoted-args-rx
+         (rx "`" (1+ (not space)) "`")))
+    (hy--fontify-text
+     text kwd-rx 'font-lock-keyword-face)
+    (hy--fontify-text
+     text kwargs-rx 'font-lock-type-face)
+    (hy--fontify-text
+     text quoted-args-rx 'font-lock-constant-face 'bold-italic))
+  text)
+#+END_SRC
+
+   Next lets see the sending and formatting of the shell's raw eldoc output.
+
+#+BEGIN_SRC lisp
+(defun hy--eldoc-send (string)
+  "Send STRING for eldoc to internal process returning output."
+  (-> string
+     hy--shell-send-async
+     hy--eldoc-chomp-output
+     hy--eldoc-remove-syntax-errors
+     hy--str-or-nil))
+#+END_SRC
+
+   The string/output formatting are implementation details specific to Hy and so
+   won't be detailed. If we are dealing with an empty string, we return nil
+   rather than the empty string to pass-by parent ~when~ clauses.
+
+   The meat of Eldoc is in extracting the innermost symbol of the current point
+
+#+BEGIN_SRC lisp
+(defun hy--eldoc-get-inner-symbol ()
+  "Traverse and inspect innermost sexp and return formatted string for eldoc."
+  (save-excursion
+    (-when-let* ((_ (hy-shell-get-process 'internal))
+                 (state (syntax-ppss))
+                 (start-pos (hy--sexp-inermost-char state))
+                 (_ (progn (goto-char start-pos)
+                           (not (hy--not-function-form-p))))
+                 (function (progn (forward-char)
+                                  (thing-at-point 'symbol))))
+
+      ;; Attribute method call (eg. ".format str") needs following sexp
+      (if (s-starts-with? "." function)
+          (when (ignore-errors (forward-sexp) (forward-char) t)
+            (pcase (char-after)
+              ;; Can't send just .method to eldoc
+              (?\) (setq function nil))
+              (?\s (setq function nil))
+              (?\C-j (setq function nil))  ; newline
+
+              ;; Dot dsl doesn't work on literals
+              (?\[ (concat "list" function))
+              (?\{ (concat "dict" function))
+              (?\  (concat "str" function))  ; the " is deleted in blog as breaks rainbow.js
+
+              ;; Otherwise complete the dot dsl
+              (_ (progn
+                   (forward-char)
+                   (concat (thing-at-point 'symbol) function)))))
+        function))))
+#+END_SRC
+
+   So Eldoc's path is to call ~hy--eldoc-get-inner-symbol~ if an internal process
+   is active, ~syntax-ppss~ indicates we are within a form, and that the
+   innermost form is a symbol. The completed string is sent off to the internal
+   process we've built up, the output is chomped of quote characters and the
+   prompt and syntax errors (eg. completing "str." while we are still typing)
+   are ignored. The result is fontified and returned by the documentation function.
+
+** Spacemacs shift-k documentation lookup
+
+   A feature of Spacemacs is typing "K" to perform
+   ~spacemacs/evil-smart-doc-lookup~ to get the full documentation of the
+   symbol-at-point in a separate buffer.
+
+   Using Eldoc's documentation functions, with slightly different formatting, we
+   already have most of shift-K implemented.
+
+   We moved most of ~hy-eldoc-documentation-function~ into ~hy--eldoc-get-docs~ which
+   distinctly accepts an optional argument for buffer-style rather than
+   eldoc-style formatting.
+
+   We then create a mirror of the documentation function as
+   ~hy--docs-for-thing-at-point~. We format the text to account for newlines
+   (newlines from process output are escaped so we must trim one backslash from
+   each newline).
+
+#+BEGIN_SRC lisp
+(defun hy--docs-for-thing-at-point ()
+  "Mirrors `hy-eldoc-documentation-function' formatted for a buffer, not a msg."
+  (-> (thing-at-point 'symbol)
+     (hy--eldoc-get-docs t)
+     hy--format-docs-for-buffer))
+
+(defun hy--format-docs-for-buffer (text)
+  "Format raw hydoc TEXT for inserting into hyconda buffer."
+  (when text
+    (-let [kwarg-newline-regexp
+           (rx ","
+               (1+ (not (any "," ")")))
+               (group-n 1 "\\\n")
+               (1+ (not (any "," ")"))))]
+      (--> text
+         (s-replace "\\n" "\n" it)
+         (replace-regexp-in-string kwarg-newline-regexp "newline" it nil t 1)))))
+#+END_SRC
+
+   It is interesting how "K" is actually called, I'm not sure if any other
+   function operates quite the same. "K" calls the function bound to "SPC m h h".
+
+#+BEGIN_SRC lisp
+(spacemacs/set-leader-keys-for-major-mode 'hy-mode
+  "hh" 'hy-describe-thing-at-point)
+#+END_SRC
+
+   Lastly we need to create, switch-to, and insert the retrieved docs as ~hy-describe-thing-at-point~.
+
+#+BEGIN_SRC lisp
+(defun hy-describe-thing-at-point ()
+  "Implement shift-k docs lookup for `spacemacs/evil-smart-doc-lookup'."
+  (interactive)
+  (-when-let* ((text (hy--docs-for-thing-at-point))
+               (doc-buffer "*Hyconda*"))
+    (with-current-buffer (get-buffer-create doc-buffer)
+      (erase-buffer)
+      (switch-to-buffer-other-window doc-buffer)
+
+      (insert text)
+      (goto-char (point-min))
+      (forward-line)
+
+      (insert "------\n")
+      (fill-region (point) (point-max))
+
+      ;; Eventually make hyconda-view-minor-mode, atm this is sufficient
+      (local-set-key "q" 'quit-window)
+      (when (fboundp 'evil-local-set-key)
+        (evil-local-set-key 'normal "q" 'quit-window)))))
+#+END_SRC
+
+* Closing
+
+  There are several other features worth discussion like font-locking the
+  shell prompt input and the ~send-(form/region/buffer)-to-shell~ that are
+  sizable enough to warrant their own posts later. With this post, the series is
+  caught up to the current featureset. Linting would be the next big problem to
+  attack. I'd also like to integrate ~ert~.
+
+  Going without Company and Eldoc has helped me appreciate the value in IDEs.
+  Hy is quickly becoming a pleasant development experience.
+
+  My only guidance was source code. I hope this series make the problem more
+  tractable for prospective major mode authors.
