@@ -69,7 +69,7 @@ Lets update our font lock keyword to match every other word:
 (setq every-other-word-rgx
       (rx (1+ word) (1+ not-wordchar) (group (1+ word))))
 
-(add-to-list setv-font-lock-kwd
+(add-to-list 'setv-font-lock-kwd
              (list every-other-word-rgx
                    nil nil
                    '(1 font-lock-variable-name-face)))
@@ -100,7 +100,7 @@ the next line when the anchor ~setv~ is encountered.
 (defun setv-pre-match-form ()
   (forward-line))
 
-(add-to-list setv-font-lock-kwd
+(add-to-list 'setv-font-lock-kwd
              (list every-other-word-rgx
                    '(setv-pre-match-form) nil
                    '(1 font-lock-variable-name-face)))
@@ -271,7 +271,7 @@ We jump past one sexp, namely the value, and set match-data to the following
 with a regex search, as required by font-lock internals.
 
 Now this match doesn't consider syntax, unlike the first jump. We check that we
-didn't just mover forward into an embedded form. If we did, we need to skip this
+didn't just move forward into an embedded form. If we did, we need to skip this
 pair as we both do not want to highlight the form, and it would interfere with
 the ~sp-beginning-of-sexp~ on future calls. So we jump out and recurse.
 
@@ -283,7 +283,6 @@ syntax-highlighting and pulls together many more advanced features of Emac's ~fo
 However there are still issues:
 
 1. There is a performance cost to multiline highlighting, as noted in its documentation. How significant the impact is something I do not understand well yet.
-
 2. While the names that are highlighted appear to be correct, application of highlighting to every name at all times is still inconsistent and might require edits on nearby parts of the buffer to take effect. My hunch is to investigate the other two region extension functions.
 
 Altogether I'm once again impressed at the flexibility Emacs offers to tailor
