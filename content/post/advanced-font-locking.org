@@ -1,0 +1,290 @@
+#+TITLE: Advanced Syntax Highlighting - Variable Assignments
+#+SLUG: advanced-syntax
+#+DATE: 2018-04-13
+#+CATEGORIES: lisp emacs
+#+SUMMARY: Syntax-traversing highlighting.
+#+DRAFT: false
+
+Variable assignments in Emacs lisp are not highlighted.
+
+That is, ~(setq foo bar)~ will not apply ~font-lock-variable-name-face~ to ~foo~.
+This case is easy enough to implement via regex.
+
+But in Emacs lisp, assignment is variadic, accepting alternating name-value pairs.
+
+#+BEGIN_SRC lisp
+(setq foo bar
+      foo (more stuff) foo bar)
+#+END_SRC
+
+How can we hope to highlight all the ~foo~?
+
+In this post I demonstrate syntax-traversing highlighting, as applied to variable
+assignments.
+
+[[file:/img/setv-highlighting-example.png]]
+
+Plus and minus denote the name/value pairs. Names that are forms are not
+highlighted, as desired.
+
+In this post I reference a ~setv~ instead of ~setq~. Snippets depend on ~dash~ and ~smartparens~.
+
+* Syntax Highlighting
+** Intro
+
+Font locks are widely used in Emacs, responsible for most syntax highlighting.
+
+Typically regexes and faces are paired together. The single pair case can be
+handled by adding the following list to ~font-lock-keywords~.
+
+#+BEGIN_SRC lisp
+(setq setv-rgx
+      (rx symbol-start "setv" symbol-end (1+ space) (group (1+ word))))
+(setq setv-font-lock-kwd
+      (list setv-rgx '(1 font-lock-variable-name-face)))
+#+END_SRC
+
+See <a href='{{< relref "major-mode-part-1.org" >}}'>my post on writing a major
+mode</a> for more examples of font-locking.
+
+For most all cases, regexes are sufficient.
+
+** Recursive Highlighting
+
+Lets look at the smaller case of highlighting every other word occuring after ~setv~ in:
+
+#+BEGIN_SRC lisp
+(setv foo bar foo bar foo bar)
+#+END_SRC
+
+We have an indeterminate number of alternating pairs.
+
+For this usecase, ~font-lock-keywords~ exposes something called "match anchors".
+That is, we anchor on some initial match, the ~setv~, and then repeatedly
+try another match.
+
+Lets update our font lock keyword to match every other word:
+
+#+BEGIN_SRC lisp
+(setq every-other-word-rgx
+      (rx (1+ word) (1+ not-wordchar) (group (1+ word))))
+
+(add-to-list setv-font-lock-kwd
+             (list every-other-word-rgx
+                   nil nil
+                   '(1 font-lock-variable-name-face)))
+#+END_SRC
+
+Now we have every other word highlighting.
+
+** Multiline Highlighting
+
+Lets extend our example to span multiple lines:
+
+#+BEGIN_SRC lisp
+(setv foo bar foo bar foo bar
+      foo bar)
+#+END_SRC
+
+Font lock mode doesn't run over multiple lines by default. We can tell font lock
+mode to allow line-spanning highlights by setting ~font-lock-multiline~ to true.
+
+But this isn't enough. How would it know when to stop finding every other word?
+
+The two ~nil~ values in our keyword were for the ~PRE-MATCH-FORM~ and ~POST-MATCH-FORM~. These allow extra flexibility over regexes for moving the point around during the traversal. Additionally, the ~PRE-MATCH-FORM~ can return a point, which is used as the limit to the anchor.
+
+So lets define a trivial pre-match function that tells font lock mode to check
+the next line when the anchor ~setv~ is encountered.
+
+#+BEGIN_SRC lisp
+(defun setv-pre-match-form ()
+  (forward-line))
+
+(add-to-list setv-font-lock-kwd
+             (list every-other-word-rgx
+                   '(setv-pre-match-form) nil
+                   '(1 font-lock-variable-name-face)))
+#+END_SRC
+
+Closer now, the example works and can be adjusted quite easily to determine the
+right number of lines to move forward.
+
+But, performing edits on one line can cause inconsistent changes or even lose
+highlighting entirely on other lines.
+
+What is going wrong?
+
+** Font Lock Regions
+
+Editing within an assignment can cause the search for the anchored ~setv~ to
+occur from any point within the form. So finding the anchor will be unreliable.
+
+Naturally the thought is: what if we traverse to the beginning of the form in
+the ~setv-pre-match-form~ so we always catch the match?
+
+This turns out to fail as we might encounter multiple start/end combinations
+each within the same ~setv~ form, whom will buggily interact, overwrite, and
+possibly miss names entirely.
+
+The arcane ~font-lock-extend-region-functions~ is responsible for setting the
+begin and end search regions of multiline fontifications.
+
+Its documentation puts it well:
+
+#+BEGIN_QUOTE
+Its most common use is to solve the problem of /identification/ of multiline elements by providing a function that tries to find such elements and move the boundaries such that they do not fall in the middle of one.
+#+END_QUOTE
+
+Promising!
+
+Before we dive into it, lets understand the other remaining highlighting methods.
+
+** Font Locking with Functions
+
+The ~MATCHER~ is the first form in a font lock keyword. The previous examples
+have it taking the value of a regex.
+
+It can also be a function of one argument, a limiting point, that sets the ~match-data~ just as a regexp would, returning true if a match occurred.
+
+The following would be equivalent to having ~setv-rgx~ as the ~MATCHER~.
+
+#+BEGIN_SRC lisp
+(defun match-setv (limit)
+  (re-search-forward setv-rgx limit t))
+#+END_SRC
+
+But now we can do a lot more.
+
+Lets restrict to matching ~setv~ that are only one parenthesis deep.
+
+#+BEGIN_SRC lisp
+(defun match-setv (limit)
+  (and (re-search-forward setv-rgx limit t)
+       (= 1 (nth 0 (syntax-ppss)))))
+#+END_SRC
+
+This matcher performs highlighting conditional on the syntax!
+
+We now have the building blocks of syntax-traversing highlighting.
+
+* Solution
+
+A fully self-contained ~setv-mode~ to try out:
+
+#+BEGIN_SRC lisp
+(setq setv-rgx (rx symbol-start "setv" symbol-end (1+ space) (group (1+ word))))
+(setq setv-current-depth nil)
+
+(defun setv-font-lock-extend-region ()
+  "Extend assignment forms' regions, see `font-lock-extend-region-functions'."
+  (save-excursion
+    (let ((start-beg font-lock-beg)
+          (start-end font-lock-end)
+          (depth (nth 0 (syntax-ppss))))
+      (when (and (< 0 depth)
+                 (sp-beginning-of-sexp)
+                 (string= "setv" (thing-at-point 'symbol)))
+
+        (setq setv-current-depth depth)
+
+        (setq font-lock-beg (1- (point)))
+        (sp-end-of-sexp)
+        (setq font-lock-end (1+ (point)))
+
+        (or (/= start-beg font-lock-beg)  ; Signal possible changes to font-lock
+            (/= start-end font-lock-end))))))
+
+(defun setv-match-assignments (limit)
+  "Recursively set `match-data' assignment names containing point until LIMIT.
+
+`setv-font-lock-extend-region' prepares this function to:
+1. Not traverse the same assignment form twice.
+2. Have the initial call at form's start and passed limit at form's end.
+
+The first name in each assignment is highlighted via a standard regex, so as to
+keep the initial condition simple."
+  (-when-let* ((start (point))
+               (_ (sp-beginning-of-sexp))
+               (_ (re-search-forward setv-rgx limit t)))
+    (when (> start (point))  ; Resume traversal at last symbol
+      (goto-char start))
+
+    (sp-forward-sexp)
+
+    (when (< (point) limit)
+      (setq matched-word? (re-search-forward (rx (group (1+ word))) limit t))
+      (setq descended? (and setv-current-depth
+                            (> (nth 0 (syntax-ppss))
+                               setv-current-depth)))
+
+      (or (and matched-word? descended?
+               (sp-up-sexp)
+               (setv-match-assignments limit))
+          matched-word?
+          (setv-match-assignments limit)))))
+
+(define-derived-mode setv-mode lisp-mode "Setv"
+  (setq font-lock-multiline t)
+  (add-to-list 'font-lock-extend-region-functions
+               'setv-font-lock-extend-region)
+
+  (setq setv-font-lock-kwds
+        `((setv-match-assignments 1 font-lock-variable-name-face)
+          (,setv-rgx 1 font-lock-variable-name-face)))
+
+  (setq font-lock-defaults
+        '(setv-font-lock-kwds
+          nil nil
+          (("+-*/.<>=!?$%_&~^:@" . "w"))
+          nil nil
+          (font-lock-mark-block-function . mark-defun))))
+#+END_SRC
+
+I collapsed it into a major mode to allow for ~M-x setv-mode~ to try out the highlighting yourself.
+
+Lets break down what is occurring in each step:
+
+*** Extending the region
+
+We check if the form-opener containing point is an assignment.
+
+If it is we must conform to font-lock-mode's bookkeeping by:
+
+1. Setting the dynamically bound ~font-lock-beg~ and ~font-lock-end~ to the
+   desired start/end of the form, for only assignment forms.
+2. Tracking the depth of the assignment. The region expansion occurs once per
+   assignment while the searching is recursive, so we set the depth at
+   expansion-time.
+3. Return whether the start or end changed during the region expansion.
+
+*** Searching for assignments
+
+Extending the region leaves us with the current point at the assignment form's
+opening and the limit at its close, and we will not restart the search from
+somewhere else within the form.
+
+But we don't know whether the form is an assignment, we only know that the
+bounds are correct in the case that it is.
+
+So first we check that the region we are considering is an assignment.
+We jump past one sexp, namely the value, and set match-data to the following
+with a regex search, as required by font-lock internals.
+
+Now this match doesn't consider syntax, unlike the first jump. We check that we
+didn't just mover forward into an embedded form. If we did, we need to skip this
+pair as we both do not want to highlight the form, and it would interfere with
+the ~sp-beginning-of-sexp~ on future calls. So we jump out and recurse.
+
+* Conclusions
+
+The example mode demonstrates a particularly difficult form of
+syntax-highlighting and pulls together many more advanced features of Emac's ~font-lock-mode~.
+
+However there are still issues:
+
+1. There is a performance cost to multiline highlighting, as noted in its documentation. How significant the impact is something I do not understand well yet.
+
+2. While the names that are highlighted appear to be correct, application of highlighting to every name at all times is still inconsistent and might require edits on nearby parts of the buffer to take effect. My hunch is to investigate the other two region extension functions.
+
+Altogether I'm once again impressed at the flexibility Emacs offers to tailor
+the display of text to your liking.
