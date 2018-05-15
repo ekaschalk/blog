@@ -1,0 +1,70 @@
+#+TITLE: Pretty for loops
+#+SLUG: pretty-for-loops
+#+DATE: 2018-05-15
+#+CATEGORIES: emacs c c++
+#+SUMMARY: Displaying C loops with math notation
+#+DRAFT: false
+
+[[https://www.reddit.com/r/emacs/comments/8jlmcr/display_for_each_loops_in_a_mathematical_maner/][This reddit post]] posed a fun challenge: display ~for(auto&& foo : bar){...}~ with mathematical notation.
+
+In python this is trivial with ~prettify-symbols-mode~ as its syntax is simply ~for foo in bar:~.
+
+[[file:/img/pretty-for-loops.png]]
+
+Turns out is possible... whether it is a good idea or not is still questionable.
+
+* How it works
+
+First we write a regex for the for-auto construct. Two groups are set, one for
+locating the for-all symbol and another for the in symbol. The ~rx~ macro makes
+this rather large regex a breeze.
+
+#+BEGIN_SRC lisp
+(setq pretty-for-rgx
+      (rx (group "for(auto&&")
+          (1+ space)
+          (1+ word)
+          (1+ space)
+          (group ":")
+          (1+ space)
+          (1+ word)))
+#+END_SRC
+
+Now we need to compose the symbols.
+
+Ligatures in Emacs are typically set via ~prettyify-symbols-mode~ or manually
+through hacking ~compose-region~ into ~font-lock-mode~ syntax highlighting.
+
+Personal ligatures are typically done through prettify, for instance replacing
+lambdas with the greek lambda symbol, or simple for/in loops in Python.
+
+Ligatures from fonts, like Fira code, are typically done through
+~compose-region~ calls.
+
+We need to go the composition route here.
+
+We write a hook updating ~font-lock-keywords~ with the composition regex.
+
+#+BEGIN_SRC lisp
+(defun pretty-for-add ()
+  (setq font-lock-keywords nil)
+  (font-lock-add-keywords
+   nil
+   `((,pretty-for-rgx 0 (prog1 nil
+                          (compose-region
+                           (match-beginning 1) (match-end 1)
+                           `(?\∀ (Br . Bl) ?\())
+                          (compose-region
+                           (match-beginning 2) (match-end 2)
+                           ,(concat "\t" (list #x2203))))))))
+
+(add-hook 'c-mode-hook 'pretty-for-add)
+#+END_SRC
+
+Notice that in ~for(auto&& ...~ we are replacing both the for and auto but keeping
+the parenthesis. The ~(Br . Bl)~ is a ~composition rule~ that allows attaching
+the for-all symbol and the parenthesis.
+
+We set font lock keywords to nil because some keyword(s) are interfering with
+the compositions. If anyone has the interest to figure out which ones, please
+leave a comment here.
