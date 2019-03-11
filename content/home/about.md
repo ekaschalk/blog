@@ -25,7 +25,7 @@ weight = 100
 
 +++
 
-Software Engineer practicing scientific computing, full time lisper.
+Software Engineer practicing scientific computing, previously full time lisper.
 
 *Modern Emacs* details my journey learning and hacking on Emacs.
 

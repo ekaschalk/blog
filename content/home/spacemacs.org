@@ -5,17 +5,16 @@
 
 | <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a> |
 |----------------------------------------------------------------------------------|
-| [[file:img/spacemacs/python-code.png]]                                               |
-| [[file:img/spacemacs/hy-code.png]]                                                   |
+| [[file:img/new-spacemacs/pretty-code.png]]                                           |
 
 | <a href='{{< relref "custom-eshell.org" >}}'>Eshell Improvements</a> |
 |---------------------------------------------------------------------|
-| [[file:img/esh-ex.png]]                                                 |
+| [[file:img/new-spacemacs/pretty-eshell.png]]                      |
 
 | <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> |
 |---------------------------------------------------------------------|
-| [[file:img/spacemacs/magit-symbols.png]]                                |
+| [[file:img/new-spacemacs/pretty-magit.png]]      |
 
 | <a href='{{< relref "outline-bullets.org" >}}'>Fancy Outlines</a> | <a href='{{< relref "outline-ivy.org" >}}'>Outline-based Navigation</a> |
 |------------------------------------------------------------------+------------------------------------------------------------------------|
-| [[file:img/outline-bullets-config.png]]                              | [[file:img/outline-ivy-many.png]]                                          |
+| [[file:img/new-spacemacs/pretty-outlines.png]]                       | [[file:img/new-spacemacs/outline-ivy.png]]                                 |
