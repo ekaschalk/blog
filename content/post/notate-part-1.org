@@ -2,18 +2,22 @@
 #+SLUG: notate-part-1
 #+DATE: 2019-03-11
 #+CATEGORIES: lisp emacs
-#+SUMMARY: Indentation-aware, visual-only symbol replacements
+#+SUMMARY: Introducing Notate: indentation-aware, visual symbol replacements
 #+DRAFT: false
 
-Programming with mathematical notation is an exciting concept: imagine
-seeing ~for~ as ~∀~ and ~int~ as ~ℤ~ in your code.
+Programming with mathematical notation excites me. I want to
+see:
 
-The desire is widespread: fonts like [[https://github.com/tonsky/FiraCode][Fira Code]] and [[https://github.com/i-tu/Hasklig][Hasklig]] implement
-mathematical ligatures for common operators like ~>=~ and ~->~.
+- ~∀~ not ~for~
+- ~ℤ~ not ~int~
+- ~β~ not ~beta~.
 
-As is the case, Emacs has a mode for this: ~prettify-symbols~.
+This desire is matched by others. [[https://github.com/tonsky/FiraCode][Fira Code]] and [[https://github.com/i-tu/Hasklig][Hasklig]] fonts have ligatures for
+operators like ~>=~ and ~->~ getting us some of the way there.
 
-But there is a problem, a big one...
+[[https://xkcd.com/378/]['Course]], there is an Emacs mode to do this: ~prettify-symbols~.
+
+But we can't turn every language into our own, personal APL quite yet...
 
 #+BEGIN_SRC lisp
 (and foo   ; The actual text
@@ -26,15 +30,22 @@ But there is a problem, a big one...
    bar)
 #+END_SRC
 
-Replacements without matching "widths" must break indentation, either your
+Replacements without matching "widths" can break indentation, either your
 working or the true indentation.
 
 <a href='{{< relref "prettify-mode.md">}}'>Over two years ago I learned of this
 problem</a> and <a href='{{< relref "lig-spacing.org" >}}'>periodically have
 taken stabs at it</a>.
 
-I have made enough headway that I feel a follow-up has been earned.
-
-/This post introduces my package [[https://github.com/ekaschalk/notate][Notate]], a WIP still./
+*I introduce [[https://github.com/ekaschalk/notate][Notate]], implementing indentation-aware visual symbol replacements.*
 
 * Showcase
+
+
+* Notes
+
+Notate has solved:
+
+- indentation issues with equal-width replacements.
+
+* Limitations
