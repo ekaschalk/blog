@@ -1,8 +1,0 @@
-#+TITLE: Notating Programs - Introduction
-#+SLUG: notate-part-1
-#+DATE: 2019-03-11
-#+CATEGORIES: lisp emacs
-#+SUMMARY: Indentation-aware, visual-only symbol replacements
-#+DRAFT: false
-
-[[https://github.com/ekaschalk/notate][Notate]] is xxx.

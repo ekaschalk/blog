@@ -1,0 +1,40 @@
+#+TITLE: Notating Programs
+#+SLUG: notate-part-1
+#+DATE: 2019-03-11
+#+CATEGORIES: lisp emacs
+#+SUMMARY: Indentation-aware, visual-only symbol replacements
+#+DRAFT: false
+
+Programming with mathematical notation is an exciting concept: imagine
+seeing ~for~ as ~∀~ and ~int~ as ~ℤ~ in your code.
+
+The desire is widespread: fonts like [[https://github.com/tonsky/FiraCode][Fira Code]] and [[https://github.com/i-tu/Hasklig][Hasklig]] implement
+mathematical ligatures for common operators like ~>=~ and ~->~.
+
+As is the case, Emacs has a mode for this: ~prettify-symbols~.
+
+But there is a problem, a big one...
+
+#+BEGIN_SRC lisp
+(and foo   ; The actual text
+     bar)
+(∧ foo     ; What we see when working - bar isn't aligned!
+     bar)
+(∧ foo     ; What we want to see when working...
+   bar)
+(and foo   ; But now the true indentation is incorrect!
+   bar)
+#+END_SRC
+
+Replacements without matching "widths" must break indentation, either your
+working or the true indentation.
+
+<a href='{{< relref "prettify-mode.md">}}'>Over two years ago I learned of this
+problem</a> and <a href='{{< relref "lig-spacing.org" >}}'>periodically have
+taken stabs at it</a>.
+
+I have made enough headway that I feel a follow-up has been earned.
+
+/This post introduces my package [[https://github.com/ekaschalk/notate][Notate]], a WIP still./
+
+* Showcase
