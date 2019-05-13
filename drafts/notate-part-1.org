@@ -1,12 +1,11 @@
-#+TITLE: Notating Programs
+#+TITLE: Program with Personalized Notation
 #+SLUG: notate-part-1
 #+DATE: 2019-03-11
 #+CATEGORIES: lisp emacs
 #+SUMMARY: Introducing Notate: indentation-aware, visual symbol replacements.
-#+DRAFT: false
+#+DRAFT: true
 
-Programming with mathematical notation excites me. I want to
-see:
+When programming I want to see:
 
 - ~λ~ not ~lambda~
 - ~ℤ~ not ~int~
@@ -16,7 +15,8 @@ see:
 This desire is matched by others. [[https://github.com/tonsky/FiraCode][Fira Code]] and [[https://github.com/i-tu/Hasklig][Hasklig]] fonts get us some of the
 way there with ligatures for operators like ~>=~ and ~->~.
 
-[[https://xkcd.com/378/]['Course]], there is an Emacs mode to do this: ~prettify-symbols~.
+[[https://xkcd.com/378/]['Course]], there's an Emacs command to do this: ~prettify-symbols~. The
+replacements are purely visual, the underlying text is unchanged.
 
 But we can't turn every language into our own, personal APL quite yet...
 
@@ -31,14 +31,14 @@ But we can't turn every language into our own, personal APL quite yet...
    bar)
 #+END_SRC
 
-Keep true or working indentation correct? Either choice strips benefit, leaving
-us restricted to equal-width replacements. In other words, just some operators.
+Keep true or working indentation correct? Either choice strips freedom, leaving
+us restricted to equal-width replacements in general.
 
 <a href='{{< relref "prettify-mode.md">}}'>Over two years ago I learned of this
 problem</a> and <a href='{{< relref "lig-spacing.org" >}}'>periodically have
 taken stabs at it</a>.
 
-*I now introduce [[https://github.com/ekaschalk/notate][Notate]], indentation-aware visual symbol replacements.*
+*I introduce [[https://github.com/ekaschalk/notate][Notate]], an Emacs package for indentation-aware visual symbol replacements.*
 
 * Showcase
 

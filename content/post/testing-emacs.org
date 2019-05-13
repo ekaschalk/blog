@@ -1,0 +1,223 @@
+#+TITLE: Testing Emacs programs with Buttercup
+#+SLUG: testing-emacs
+#+DATE: 2019-05-13
+#+CATEGORIES: lisp emacs testing
+#+SUMMARY: Being emacs-lisp isn't an excuse to not test
+#+DRAFT: false
+
+[[https://github.com/jorgenschaefer/emacs-buttercup][Buttercup]] is a testing framework for emacs-lisp. It is used by large projects
+like [[https://github.com/clojure-emacs/cider][Clojure's CIDER]] to write clean, concise, and descriptive tests.
+
+I introduce Buttercup and build up to advanced usages with the faint, unlikely
+dream that some Emacs programmer decides to add tests to their library...
+
+* What is Buttercup?
+*** Introduction
+
+Buttercup's entry points are: ~describe~, ~it~, and ~expect~.
+
+We ~describe~ a test suite with a name. Test cases within the possibly nested
+suites are done with ~it~ and assertions as ~expect~ blocks within.
+
+#+BEGIN_SRC lisp
+(describe "Four"
+  (describe "comparisons"
+    (it "is greater than one"
+      (expect (> 4 1)))
+    (it "and less than five"
+      (expect 4 :to-be-less-than 5)))
+
+  (it "is a number"
+    (expect (numberp 4))))
+#+END_SRC
+
+passes with testing output:
+
+#+BEGIN_EXAMPLE
+Four
+  comparisons
+    is greater than one (0.24ms)
+    and less than five (0.12ms)
+  is a number (0.09ms)
+#+END_EXAMPLE
+
+*** Setup and Teardown
+
+Buttercup provides ~before-each~, ~after-each~, ~before-all~, and ~after-all~ to
+reduce boilerplate with setting up and tearing down test suites.
+
+#+BEGIN_SRC lisp
+(describe "Lisp mode syntax"
+  (before-all (set-syntax-table lisp-mode-syntax-table))
+  (after-each (delete-region (point-min) (point-max)))
+
+  (it "sets comments"
+    (insert ";; foo")
+    (expect (nth 4 (syntax-ppss))))
+
+  (it "sets strings"
+    (insert "\"foo\"")
+    (backward-char)
+    (expect (nth 3 (syntax-ppss)))))
+#+END_SRC
+
+*** Matchers
+
+The ~expect~ has more utility than simple tests of truth. *Matchers* are
+keywords that tailor the expectation.
+
+Some example matcher expansions:
+
+- :to-be :: ~(eq foo bar)~
+- :to-equal :: ~(equal foo bar)~
+- :to-be-in :: ~(member foo bar)~
+- :to-be-close-to :: ~(foo bar precisision)~
+- :to-throw :: ~(expr &optional signal signal-args)~
+
+Some other more advanced matchers include: ~:to-have-same-items-as~, ~:to-match~, and ~:to-have-been-called~.
+
+These matchers may be combined too: eg. ~(expect 4 :not :to-be-greater-than 5)~.
+
+Matchers are more than just transforms+comparisons. They give information about
+the failure.
+
+#+BEGIN_SRC lisp
+(describe "Example Matchers"
+  (it "regexes"
+    (expect (s-concat "foo" "bar")
+            :to-match (rx word-start "foo" word-end))))
+#+END_SRC
+
+~Expected `(s-concat "foo" "bar")' with value "foobar" to match the regexp "\\<foo\\>", but instead it was "foobar".~
+
+*** Running It
+
+I recommend using ~Cask~ and executing tests with ~cask exec buttercup -L .~ in the project root.
+
+For example, have a file named ~Cask~ in the project root with:
+
+#+BEGIN_SRC lisp
+(source gnu)
+(source melpa)
+
+(package-file "test-stuff-i-beg-you-mode.el")
+
+;; Project Dependencies
+(depends-on "dash")
+
+;; Additional Testing Dependencies
+(development
+ (depends-on "buttercup")
+ (depends-on "faceup"))
+#+END_SRC
+
+A folder named ~test/~ should be present and contain ~test-stuff-i-beg-you-mode-test.el~.
+
+This file should have your tests, set up the load path if needed, and require
+everything you need.
+
+Lastly I will mention some other useful features before diving in to Buttercup:
+
+- Variables can be defined with let syntax with ~:var~ in ~describe~ blocks.
+- Buttercup has good support for spying on function calls.
+- Adding an ~x~, so it's ~xit~ and ~xdescribe~, mark the test as pending so it
+  won't be executed.
+
+* Case Study: Testing Indentation
+
+You have written ~yet-another-lisp-like-mode~ you affectionately call ~yall-mode~ and want to test its indentation.
+
+Lets write a skeleton to test the simplest cases:
+
+#+BEGIN_SRC lisp
+;; Want to test these two cases:
+;; (foo
+;;  bar)
+
+;; (foo bar
+;;      baz)
+
+(describe "Indentation"
+  (before-all (setq indent-line-function #'yall-indent-line))
+
+  (describe "standard cases"
+    (it "opening line has one sexp - so indentation doesn't carry"
+      (expect ???))
+
+    (it "opening line has two+ sexps - so indentation carries"
+      (expect ???))))
+#+END_SRC
+
+To test indentation - all we need is the text we expect, as the text alone
+determines the indent.
+
+Buttercup allows us to achieve this via *custom matchers*. We can bypass /all
+boilerplate/ and write our expectations as simply as:
+
+#+BEGIN_SRC lisp
+(expect "
+(foo
+ bar)
+" :indented)
+#+END_SRC
+
+The macro ~buttercup-define-matcher~ allows defining our own matcher, that will
+perform transforms, assertions, and /give descriptive failures/.
+
+Lets implement our ~:indented~ matcher:
+
+#+BEGIN_SRC lisp
+(defun yall-trim-indent (text)
+  "Remove indentation from TEXT."
+  (->> text s-lines (-map #'s-trim-left) (s-join "\n")))
+
+(defun yall-buffer-string ()
+  "Return buffer as text with beginning and ending empty space trimmed."
+  (s-trim (buffer-substring-no-properties (point-min) (point-max))))
+
+(buttercup-define-matcher :indented (text)
+  (let* ((text (s-trim (funcall text)))
+         (text-no-indent (yall-trim-indent text)))
+    (insert text-no-indent)
+    (indent-region-line-by-line (point-min) (point-max))
+
+    (let ((text-with-indent (yall-buffer-string)))
+      (delete-region (point-min) (point-max))
+
+      (if (string= text text-with-indent)
+          t
+        `(nil . ,(format "\nGiven indented text \n%s\nwas instead indented to \n%s\n"
+                         text text-with-indent))))))
+#+END_SRC
+
+Now we can see the power of buttercup when we accidentally write:
+
+#+BEGIN_SRC lisp
+(describe "Indentation"
+  (before-all (setq indent-line-function #'yall-indent-line))
+
+  (describe "standard cases"
+    (it "opening line has two+ sexps - so indentation carries"
+      (expect "
+(foo bar
+      baz)
+" :indented))))
+#+END_SRC
+
+and are given the failure:
+
+#+BEGIN_EXAMPLE
+FAILED:
+Given indented text
+(foo bar
+      baz)
+was instead indented to
+(foo bar
+     baz)
+#+END_EXAMPLE
+
+We know exactly what went wrong, with nearly all the implementation details
+separated from the testcase with boilerplate just ~:indented~.
+
+Testing Emacs programs doesn't have to be painful - buttercup is a great and
+battle-tested library for writing quality Emacs programs.
