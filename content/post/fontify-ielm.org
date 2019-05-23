@@ -1,0 +1,94 @@
+#+TITLE: Colorful ielm - font-locking comint
+#+SLUG: comint-highlighting
+#+DATE: 2019-05-23
+#+CATEGORIES: lisp emacs
+#+SUMMARY: More advanced usage of font-lock mode.
+#+DRAFT: false
+
+If you ever used ~ielm~, or other ~comint-mode~ derivatives, you will notice
+that the text you input is not highlighted according to the major-mode.
+
+If I type ~(setq foo bar)~ into ielm, the setq won't be highlighted.
+
+Why is this? And how do we change this?
+
+* Naive solution
+
+Look at ~font-lock-keywords~ in ielm and it is suspiciously near-empty. We could
+copy over emacs-lisp's keywords:
+
+#+BEGIN_SRC lisp
+(setq-local font-lock-keywords `(,@lisp-el-font-lock-keywords-2
+                                 ,@lisp-cl-font-lock-keywords-2))
+#+END_SRC
+
+But what if I type in ~(princ "(setq foo bar)")~? The output will inherit the
+highlighting.
+
+Naively enabling font locking in comint buffers can lead to a mess of syntax
+highlighting in the output. While the example above is contrived, it is in
+general not a trivial problem.
+
+I wrote and support [[https://github.com/hylang/hy-mode][hy-mode]], a lisp embedded in Python. When the interpreter is
+given "--spy", the translation of the Hy code to Python is given in the output
+before the result of the Hy code. This translation would inherit Hy's syntax
+highlighting and look like a mess.
+
+* Python-mode's solution
+
+~python-mode~ actually implements fontification of shell input. How do they do it?
+
+They add a ~post-command-hook~ that essentially extracts the current input being
+entered, fontifies it according to python, then reinserts it into the prompt.
+
+There is quite a bit going on to make this work in practice - check out ~python-shell-font-lock-post-command-hook~ if you are interested.
+
+I had success using this approach for ~hy-mode~ but always thought it was a
+kludge and difficult to understand and work with. Can't I just use ~font-lock-mode~ directly?
+
+* My solution
+
+I came up with a hookless, pure font-lock-mode solution that /should/ work for
+arbitrary modes.
+
+I convert every ~font-lock-keyword~ MATCHER component to check that we are
+within a prompt before calling the MATCHER if it is a function or matching on it
+if it is a regex.
+
+#+BEGIN_SRC lisp
+(require 'dash)
+
+(defun kwd->comint-kwd (kwd)
+  "Converts a `font-lock-keywords' KWD for `comint-mode' input fontification.
+
+The KWD must have as MATCHER a regex. The highlights may take any form as
+defined in `font-lock-keywords', typically just one or more MATCH-HIGHLIGHTs."
+  (-let (((matcher . match-highlights) kwd))
+    ;; below is ` quoted but breaks my blogs syntax higlighting, so removing it!
+    ;; make sure to capture first paren in a ` if copying!
+    ((lambda (limit)
+       ;; Matcher can be a function or a regex
+       (when ,(if (symbolp matcher)
+                  `(,matcher limit)
+                `(re-search-forward ,matcher limit t))
+         ;; While the SUBEXP can be anything, this search always can use zero
+         (-let ((start (match-beginning 0))
+                ((comint-last-start . comint-last-end) comint-last-prompt)
+                (state (syntax-ppss)))
+           (and (> start comint-last-start)
+                ;; Make sure not in comment or string
+                ;; have to manually do this in custom MATCHERs
+                (not (or (nth 3 state) (nth 4 state)))))))
+     ,@match-highlights)))
+
+(setq my-ielm-font-lock-kwds
+      `(,@(-map #'kwd->comint-kwd lisp-el-font-lock-keywords-2)
+        ,@(-map #'kwd->comint-kwd lisp-cl-font-lock-keywords-2)))
+
+(defun set-my-ielm-kwds ()
+  (interactive)
+  (setq-local font-lock-keywords my-ielm-font-lock-kwds))
+#+END_SRC
+
+Now ~ielm~, my own ~hy-mode~, etc. highlights shell input without messing with
+the output if I call ~set-my-ielm-kwds~ in an ielm buffer.
