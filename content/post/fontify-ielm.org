@@ -59,10 +59,7 @@ if it is a regex.
 (require 'dash)
 
 (defun kwd->comint-kwd (kwd)
-  "Converts a `font-lock-keywords' KWD for `comint-mode' input fontification.
-
-The KWD must have as MATCHER a regex. The highlights may take any form as
-defined in `font-lock-keywords', typically just one or more MATCH-HIGHLIGHTs."
+  "Converts a `font-lock-keywords' KWD for `comint-mode' input fontification."
   (-let (((matcher . match-highlights) kwd))
     ;; below is ` quoted but breaks my blogs syntax higlighting, so removing it!
     ;; make sure to capture first paren in a ` if copying!
