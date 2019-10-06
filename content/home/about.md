@@ -25,7 +25,7 @@ weight = 100
 
 +++
 
-Software Engineer practicing scientific computing, previously full time lisper.
+@google Software Engineer in Mountain View.
 
 *Modern Emacs* details my journey learning and hacking on Emacs.
 

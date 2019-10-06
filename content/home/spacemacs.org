@@ -3,18 +3,23 @@
 #+WEIGHT: 50
 #+WIDGET: custom
 
-| <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a> |
-|----------------------------------------------------------------------------------|
-| [[file:img/new-spacemacs/pretty-code.png]]                                           |
+# | <a href='{{< relref "prettify-mode.md" >}}'>Coding with Mathematical Notation</a>  |
+| Coding with Mathematical Notation  |
+|----------------------------------------|
+| [[file:img/new-spacemacs/pretty-code.png]] |
+|                                        |
 
-| <a href='{{< relref "custom-eshell.org" >}}'>Eshell Improvements</a> |
+# | <a href='{{< relref "custom-eshell.org" >}}'>Eshell Improvements</a> |
+| Eshell Improvements |
 |---------------------------------------------------------------------|
 | [[file:img/new-spacemacs/pretty-eshell.png]]                      |
 
-| <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> |
+# | <a href='{{< relref "pretty-magit.org" >}}'>Pretty Magit Commits</a> |
+| Pretty Magit Commits |
 |---------------------------------------------------------------------|
 | [[file:img/new-spacemacs/pretty-magit.png]]      |
 
-| <a href='{{< relref "outline-bullets.org" >}}'>Fancy Outlines</a> | <a href='{{< relref "outline-ivy.org" >}}'>Outline-based Navigation</a> |
+# | <a href='{{< relref "outline-bullets.org" >}}'>Fancy Outlines</a> | <a href='{{< relref "outline-ivy.org" >}}'>Outline-based Navigation</a> |
+| Fancy Outlines | Outline-based Navigation |
 |------------------------------------------------------------------+------------------------------------------------------------------------|
 | [[file:img/new-spacemacs/pretty-outlines.png]]                       | [[file:img/new-spacemacs/outline-ivy.png]]                                 |
